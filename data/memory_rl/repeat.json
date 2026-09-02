@@ -98,5 +98,26 @@
   },
   "10m|320x480mm|dtg|kromo|sticker": {
     "repeat": 0.478
+  },
+  "150x100mm|1d9|ac230gr|kecil": {
+    "repeat": 0.478
+  },
+  "420x297mm|ac260gr|balik|bolak|gbr": {
+    "repeat": 0.717
+  },
+  "1d24|70x70mm|stiker|vinyl": {
+    "repeat": 0.641
+  },
+  "1d40|60x60mm|stiker|vinyl": {
+    "repeat": 0.641
+  },
+  "1d1|320x480mm|cromo|stiker": {
+    "repeat": 0.478
+  },
+  "1d1|480x320mm|ac260gr|kecil": {
+    "repeat": 0.24
+  },
+  "1d2|210x297mm|ac230gr|menu": {
+    "repeat": 0.037
   }
 }
