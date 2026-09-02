@@ -1,0 +1,101 @@
+{
+  "1d1|420x297mm|ac260gr|kecil": {
+    "crop": 0.714
+  },
+  "1d24|80x80mm|kromo|stiker|test": {
+    "crop": 0.686
+  },
+  "1d1|297x420mm|ac310gr|kecil": {
+    "crop": 0.478
+  },
+  "100gr|1d2|297x210mm|hvs": {
+    "crop": 0.478
+  },
+  "1d24|80x80mm|sticker|vinyl": {
+    "crop": 0.478
+  },
+  "1d12|90x120mm|ditunggusticker|kromo": {
+    "crop": 0.478
+  },
+  "150x70mm|1d12|ac230gr|kecil": {
+    "crop": 0.478
+  },
+  "1d2|214x301mm|ac260gr|kecil": {
+    "bleed": 0.478
+  },
+  "1d1|250x400mm|ac310gr|kecil": {
+    "crop": 0.478
+  },
+  "1d2|210x297mm|ac310gr|buku|jam": {
+    "crop": 0.478
+  },
+  "150x200mm|1d4|ac310gr|kecil": {
+    "crop": 0.478
+  },
+  "1d1|420x297mm|ac310gr|kecil": {
+    "crop": 0.478
+  },
+  "1d25|200|59x94mm|ac230gr": {
+    "bleed": 0.478
+  },
+  "1d40|60x60mm|kromo|stiker": {
+    "crop": 0.478
+  },
+  "152|480x320mm|belakang|edisi|hvs100gr": {
+    "crop": 0.478
+  },
+  "1d2|297x210mm|hvs100gr|kecil": {
+    "crop": 0.478
+  },
+  "1d1|297x420mm|hvs100gr|kecil": {
+    "crop": 0.478
+  },
+  "1d25|90x60mm|ac260gr|kecil": {
+    "crop": 0.725
+  },
+  "1d1|320x480mm|belakang|hvs100gr|koran": {
+    "crop": 0.478
+  },
+  "1d2|210x297mm|hvs100gr|kecil": {
+    "crop": 0.723
+  },
+  "145x145mm|1d6|kromo|stiker": {
+    "crop": 0.723
+  },
+  "130x130mm|1d6|kromo|stiker": {
+    "crop": 0.478
+  },
+  "1d16|75x113mm|kromo|stiker": {
+    "crop": 0.478
+  },
+  "1d12|97x97mm|kromo|stiker": {
+    "crop": 0.641
+  },
+  "1d1|320x480mm|kromo|stiker": {
+    "crop": 0.717
+  },
+  "1d2|210x297mm|concord|putih": {
+    "crop": 0.478
+  },
+  "1d12|80x140mm|jam|stiker|vynil": {
+    "crop": 0.478
+  },
+  "1d2|210x297mm|ac260gr|kecil": {
+    "crop": 0.478
+  },
+  "1d8|210x75mm|stiker|vinyl": {
+    "crop": 0.641
+  },
+  "1d1|320x480mm|ap120gr|kecil": {
+    "crop": 0.042
+  },
+  "210x297mm|ac260gr|buku|kiri|spiral": {
+    "crop": 0.641
+  },
+  "148x210mm|1d4|ap120gr|brosur|test": {
+    "bleed": 0.697
+  },
+  "10m|320x480mm|dtg|kromo|sticker": {
+    "crop": 0.478
+  }
+}

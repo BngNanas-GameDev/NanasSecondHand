@@ -1,0 +1,104 @@
+{
+  "1d1|420x297mm|ac260gr|kecil": {
+    "Ac260gr": 0.714
+  },
+  "1d24|80x80mm|kromo|stiker|test": {
+    "Kromo": 0.686
+  },
+  "1d1|297x420mm|ac310gr|kecil": {
+    "Ac310gr": 0.478
+  },
+  "100gr|1d2|297x210mm|hvs": {
+    "Hvs100gr": 0.478
+  },
+  "1d24|80x80mm|sticker|vinyl": {
+    "Vinyl": 0.478
+  },
+  "1d12|90x120mm|ditunggusticker|kromo": {
+    "Kromo": 0.478
+  },
+  "150x70mm|1d12|ac230gr|kecil": {
+    "Ac230gr": 0.478
+  },
+  "1d2|214x301mm|ac260gr|kecil": {
+    "Ac260gr": 0.478
+  },
+  "1d1|250x400mm|ac310gr|kecil": {
+    "Ac310gr": 0.478
+  },
+  "1d2|210x297mm|ac310gr|buku|jam": {
+    "Ac310gr": 0.478
+  },
+  "150x200mm|1d4|ac310gr|kecil": {
+    "Ac310gr": 0.478
+  },
+  "1d1|420x297mm|ac310gr|kecil": {
+    "Ac310gr": 0.478
+  },
+  "1d25|200|59x94mm|ac230gr": {
+    "Ac230gr": 0.478
+  },
+  "1d40|60x60mm|kromo|stiker": {
+    "Kromo": 0.478
+  },
+  "152|480x320mm|belakang|edisi|hvs100gr": {
+    "Hvs100gr": 0.478
+  },
+  "1d2|297x210mm|hvs100gr|kecil": {
+    "Hvs100gr": 0.478
+  },
+  "1d1|297x420mm|hvs100gr|kecil": {
+    "Hvs100gr": 0.478
+  },
+  "1d25|90x60mm|ac260gr|kecil": {
+    "Ac260gr": 0.725,
+    "salah": 0.623
+  },
+  "1d1|320x480mm|belakang|hvs100gr|koran": {
+    "Hvs100gr": 0.478
+  },
+  "1d2|210x297mm|hvs100gr|kecil": {
+    "Hvs100gr": 0.745,
+    "repeat": 0.702,
+    "repeat repeat": 0.715
+  },
+  "145x145mm|1d6|kromo|stiker": {
+    "Kromo": 0.723
+  },
+  "130x130mm|1d6|kromo|stiker": {
+    "Kromo": 0.478
+  },
+  "1d16|75x113mm|kromo|stiker": {
+    "Kromo": 0.478
+  },
+  "1d12|97x97mm|kromo|stiker": {
+    "Kromo": 0.641
+  },
+  "1d1|320x480mm|kromo|stiker": {
+    "Kromo": 0.717
+  },
+  "1d2|210x297mm|concord|putih": {
+    "Concord": 0.36
+  },
+  "1d12|80x140mm|jam|stiker|vynil": {
+    "Vinyl": 0.36
+  },
+  "1d2|210x297mm|ac260gr|kecil": {
+    "Ac260gr": 0.478
+  },
+  "1d8|210x75mm|stiker|vinyl": {
+    "Vinyl": 0.641
+  },
+  "1d1|320x480mm|ap120gr|kecil": {
+    "-": -0.174
+  },
+  "210x297mm|ac260gr|buku|kiri|spiral": {
+    "Ac260gr": 0.641
+  },
+  "148x210mm|1d4|ap120gr|brosur|test": {
+    "-": 0.536
+  },
+  "10m|320x480mm|dtg|kromo|sticker": {
+    "Kromo": 0.478
+  }
+}
