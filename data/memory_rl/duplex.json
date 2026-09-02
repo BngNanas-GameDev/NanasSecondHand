@@ -1,0 +1,107 @@
+{
+  "1d1|420x297mm|ac260gr|kecil": {
+    "1s": 0.697,
+    "False": 0.24
+  },
+  "1d24|80x80mm|kromo|stiker|test": {
+    "1s": 0.686
+  },
+  "1d1|297x420mm|ac310gr|kecil": {
+    "1s": 0.478
+  },
+  "100gr|1d2|297x210mm|hvs": {
+    "1s": 0.478
+  },
+  "1d24|80x80mm|sticker|vinyl": {
+    "1s": 0.478
+  },
+  "1d12|90x120mm|ditunggusticker|kromo": {
+    "1s": 0.478
+  },
+  "150x70mm|1d12|ac230gr|kecil": {
+    "1s": 0.478
+  },
+  "1d2|214x301mm|ac260gr|kecil": {
+    "1s": 0.478
+  },
+  "1d1|250x400mm|ac310gr|kecil": {
+    "1s": 0.478
+  },
+  "1d2|210x297mm|ac310gr|buku|jam": {
+    "1s": 0.478
+  },
+  "150x200mm|1d4|ac310gr|kecil": {
+    "1s": 0.478
+  },
+  "1d1|420x297mm|ac310gr|kecil": {
+    "1s": 0.478
+  },
+  "1d25|200|59x94mm|ac230gr": {
+    "1s": 0.478
+  },
+  "1d40|60x60mm|kromo|stiker": {
+    "1s": 0.478
+  },
+  "152|480x320mm|belakang|edisi|hvs100gr": {
+    "2s": 0.478
+  },
+  "1d2|297x210mm|hvs100gr|kecil": {
+    "1s": 0.478
+  },
+  "1d1|297x420mm|hvs100gr|kecil": {
+    "1s": 0.478
+  },
+  "1d25|90x60mm|ac260gr|kecil": {
+    "2s": 0.641,
+    "True": 0.658,
+    "1s": 0.697
+  },
+  "1d1|320x480mm|belakang|hvs100gr|koran": {
+    "True": 0.24,
+    "2s": 0.36
+  },
+  "1d2|210x297mm|hvs100gr|kecil": {
+    "False": 0.723
+  },
+  "145x145mm|1d6|kromo|stiker": {
+    "False": 0.723
+  },
+  "130x130mm|1d6|kromo|stiker": {
+    "False": 0.478
+  },
+  "1d16|75x113mm|kromo|stiker": {
+    "False": 0.478
+  },
+  "1d12|97x97mm|kromo|stiker": {
+    "False": 0.641
+  },
+  "1d1|320x480mm|kromo|stiker": {
+    "False": 0.717
+  },
+  "1d2|210x297mm|concord|putih": {
+    "False": 0.478
+  },
+  "1d12|80x140mm|jam|stiker|vynil": {
+    "False": 0.478
+  },
+  "1d2|210x297mm|ac260gr|kecil": {
+    "False": 0.478
+  },
+  "1d8|210x75mm|stiker|vinyl": {
+    "False": 0.641
+  },
+  "1d1|320x480mm|ap120gr|kecil": {
+    "False": 0.042
+  },
+  "210x297mm|ac260gr|buku|kiri|spiral": {
+    "True": 0.575,
+    "2s": 0.623
+  },
+  "148x210mm|1d4|ap120gr|brosur|test": {
+    "True": 0.689,
+    "2s": 0.702
+  },
+  "10m|320x480mm|dtg|kromo|sticker": {
+    "False": 0.478
+  }
+}

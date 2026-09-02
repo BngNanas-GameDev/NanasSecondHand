@@ -1,0 +1,108 @@
+{
+  "1d1|420x297mm|ac260gr|kecil": {
+    "1d1=3Kecil": 0.633,
+    "1d1 = 3 KECIL": 0.408,
+    "1d1 = 2 KECIL": 0.663
+  },
+  "1d24|80x80mm|kromo|stiker|test": {
+    "1d24 = 480 KECIL": 0.686
+  },
+  "1d1|297x420mm|ac310gr|kecil": {
+    "1d1 = 3 KECIL": 0.478
+  },
+  "100gr|1d2|297x210mm|hvs": {
+    "1d2 = 2 KECIL": 0.478
+  },
+  "1d24|80x80mm|sticker|vinyl": {
+    "1d24 = 24 KECIL": 0.478
+  },
+  "1d12|90x120mm|ditunggusticker|kromo": {
+    "1d12 = 12 KECIL": 0.478
+  },
+  "150x70mm|1d12|ac230gr|kecil": {
+    "1d12 = 12 KECIL": 0.478
+  },
+  "1d2|214x301mm|ac260gr|kecil": {
+    "-": 0.36
+  },
+  "1d1|250x400mm|ac310gr|kecil": {
+    "1d1 = 4 KECIL": 0.478
+  },
+  "1d2|210x297mm|ac310gr|buku|jam": {
+    "-": 0.36
+  },
+  "150x200mm|1d4|ac310gr|kecil": {
+    "1d4 = 4 KECIL": 0.478
+  },
+  "1d1|420x297mm|ac310gr|kecil": {
+    "1d1 = 2 KECIL": 0.478
+  },
+  "1d25|200|59x94mm|ac230gr": {
+    "1d25 = 200 KECIL": 0.478
+  },
+  "1d40|60x60mm|kromo|stiker": {
+    "1d40 = 40 KECIL": 0.478
+  },
+  "152|480x320mm|belakang|edisi|hvs100gr": {
+    "-": 0.36
+  },
+  "1d2|297x210mm|hvs100gr|kecil": {
+    "1d2 = 2 KECIL": 0.478
+  },
+  "1d1|297x420mm|hvs100gr|kecil": {
+    "1d1 = 1 KECIL": 0.478
+  },
+  "1d25|90x60mm|ac260gr|kecil": {
+    "-": 0.696
+  },
+  "1d1|320x480mm|belakang|hvs100gr|koran": {
+    "-": 0.36
+  },
+  "1d2|210x297mm|hvs100gr|kecil": {
+    "-": 0.73,
+    "1d2 = 2 KECIL": 0.728
+  },
+  "145x145mm|1d6|kromo|stiker": {
+    "1d6 = 12 KECIL": 0.681,
+    "1d6 = 54 KECIL": 0.24,
+    "1d6 = 48 KECIL": 0.636,
+    "1d6 = 6 KECIL": 0.665
+  },
+  "130x130mm|1d6|kromo|stiker": {
+    "1d6 = 12 KECIL": 0.478
+  },
+  "1d16|75x113mm|kromo|stiker": {
+    "1d16 = 32 KECIL": 0.478
+  },
+  "1d12|97x97mm|kromo|stiker": {
+    "1d12 = 12 KECIL": 0.641
+  },
+  "1d1|320x480mm|kromo|stiker": {
+    "1d1 = 2 KECIL": 0.641,
+    "1d1 = 3 KECIL": 0.707
+  },
+  "1d2|210x297mm|concord|putih": {
+    "1d2 = 2 KECIL": 0.478
+  },
+  "1d12|80x140mm|jam|stiker|vynil": {
+    "1d12 = 180 KECIL": 0.478
+  },
+  "1d2|210x297mm|ac260gr|kecil": {
+    "-": 0.36
+  },
+  "1d8|210x75mm|stiker|vinyl": {
+    "1d8 = 8 KECIL": 0.641
+  },
+  "1d1|320x480mm|ap120gr|kecil": {
+    "1d1 = 7 KECIL": 0.042
+  },
+  "210x297mm|ac260gr|buku|kiri|spiral": {
+    "-": 0.536
+  },
+  "148x210mm|1d4|ap120gr|brosur|test": {
+    "1d4 = 60 KECIL": 0.697
+  },
+  "10m|320x480mm|dtg|kromo|sticker": {
+    "1d1 = 2 KECIL": 0.478
+  }
+}
