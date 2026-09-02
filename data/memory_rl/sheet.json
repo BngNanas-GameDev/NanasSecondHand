@@ -97,5 +97,26 @@
   },
   "10m|320x480mm|dtg|kromo|sticker": {
     "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "150x100mm|1d9|ac230gr|kecil": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "420x297mm|ac260gr|balik|bolak|gbr": {
+    "A3+ Full (32.5x48.7cm)": 0.717
+  },
+  "1d24|70x70mm|stiker|vinyl": {
+    "A3+ Full (32.5x48.7cm)": 0.641
+  },
+  "1d40|60x60mm|stiker|vinyl": {
+    "A3+ Full (32.5x48.7cm)": 0.641
+  },
+  "1d1|320x480mm|cromo|stiker": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "1d1|480x320mm|ac260gr|kecil": {
+    "A3+ Full (32.5x48.7cm)": 0.24
+  },
+  "1d2|210x297mm|ac230gr|menu": {
+    "A3+ Full (32.5x48.7cm)": 0.037
   }
 }

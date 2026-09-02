@@ -33,6 +33,12 @@ FINISH_MAP = {
     "": {},
 }
 
+class RLError(Exception):
+    def __init__(self, code, msg):
+        self.code = code
+        self.msg = msg
+        super().__init__(f"[{code}] {msg}")
+
 def _finishing_to_preset(v):
     if isinstance(v, dict): return v
     return FINISH_MAP.get(str(v).lower().strip(), {"mode":"crop","bleed_mm":0,"inner_crop":False,"mark_len_mm":5,"bleed_on":True} if str(v).lower()=="crop" else {})
@@ -69,13 +75,22 @@ def _key_str(state):
 def _load_q(cat):
     p = DATA_DIR / f"{cat}.json"
     if p.exists():
-        try: return json.loads(p.read_text(encoding="utf-8"))
-        except: return {}
+        try: 
+            return json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            raise RLError("E016", f"Q-table corrupt: {cat}.json")
+        except Exception as e:
+            raise RLError("E016", f"Q-table load gagal: {e}")
     return {}
 
 def _save_q(cat, data):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    (DATA_DIR / f"{cat}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        (DATA_DIR / f"{cat}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except PermissionError:
+        raise RLError("E016", f"Q-table save gagal: permission denied - {cat}.json")
+    except Exception as e:
+        raise RLError("E016", f"Q-table save gagal: {e}")
 
 def suggest_rl(filename, cat):
     """Pure RL: Q max jika ada, else default. Finishing pakai string crop/bleed."""
@@ -155,7 +170,12 @@ def suggest_parallel_rl(filename):
         v,c,_ = results[cat]
         if cat=="finishing":
             preset.update(_finishing_to_preset(v))
-        elif cat=="duplex": preset["duplex"]=v
+        elif cat=="duplex":
+            # aturan dr: data sama / balak balik sama
+            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
+                preset["duplex"]="dr"
+            else:
+                preset["duplex"]=v
         elif cat=="dx": preset["dx"]=v
         elif cat=="sheet": preset["sheet"]=v
         elif cat=="bahan": preset["bahan"]=v
@@ -184,8 +204,10 @@ def teacher_train(filename, reward=0.8):
             if m: preset["repeat"]=f"collate-cut({m.group(1)})" if m.group(1)!="1" else "collate-cut"
             elif "booklet" in filename.lower(): preset["repeat"]="booklet"
             else: preset["repeat"]="repeat"
-            # duplex dari 1s/2s
-            if "2s" in filename.lower(): preset["duplex"]="2s"
+            # duplex dari 1s/2s/dr
+            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
+                preset["duplex"]="dr"
+            elif "2s" in filename.lower(): preset["duplex"]="2s"
             else: preset["duplex"]="1s"
             if not preset.get("bahan") or not preset.get("dx"): return None
         norm={}

@@ -2,27 +2,41 @@
 import os, json, pathlib
 try:
     import requests
-except: requests=None
+except: 
+    requests=None
 
 ZEN_URL = "https://openrouter.ai/api/v1/chat/completions"
 AUTH_PATH = pathlib.Path.home() / ".local" / "share" / "opencode" / "auth.json"
 
+class LLMError(Exception):
+    def __init__(self, code, msg):
+        self.code = code
+        self.msg = msg
+        super().__init__(f"[{code}] {msg}")
+
 def _get_key():
-    if AUTH_PATH.exists():
-        try:
-            d=json.loads(AUTH_PATH.read_text(encoding="utf-8"))
-            v=d.get("openrouter","")
-            if isinstance(v, dict): v=v.get("key","")
-            return v if v else ""
-        except: pass
-    return ""
+    if not AUTH_PATH.exists():
+        raise LLMError("E019", f"auth.json tidak ditemukan: {AUTH_PATH}")
+    try:
+        d=json.loads(AUTH_PATH.read_text(encoding="utf-8"))
+        v=d.get("openrouter","")
+        if isinstance(v, dict): v=v.get("key","")
+        if not v:
+            raise LLMError("E019", "API key kosong di auth.json")
+        return v
+    except json.JSONDecodeError:
+        raise LLMError("E019", "auth.json corrupt")
 
 def call_llm(prompt, system="Jawab hanya JSON 1 baris.", temperature=0.2, max_tokens=120):
-    if not requests: return ""
-    key=_get_key()
-    if not key: return ""
+    if not requests:
+        raise LLMError("E022", "requests module tidak terinstall")
+    try:
+        key=_get_key()
+    except LLMError as e:
+        raise e
     models=["nvidia/nemotron-3.5-lightning:free","inclusionai/ling-3.0-flash-fin:free","liquid/lfm-2.5-2.6b:free"]
     headers={"Content-Type":"application/json","Authorization":f"Bearer {key}"}
+    last_error = None
     for model in models:
         try:
             r=requests.post(ZEN_URL, headers=headers, json={
@@ -41,8 +55,15 @@ def call_llm(prompt, system="Jawab hanya JSON 1 baris.", temperature=0.2, max_to
                             return l
                     continue
                 return txt
-        except: continue
-    return ""
+            else:
+                last_error = f"HTTP {r.status_code}"
+        except requests.exceptions.Timeout:
+            last_error = "timeout"
+            continue
+        except requests.exceptions.RequestException as e:
+            last_error = str(e)
+            continue
+    raise LLMError("E020", f"Semua model gagal: {last_error}")
 
 def llm_parse_filename(filename):
     """LLM baca nama file jadi enak dibaca"""
@@ -78,5 +99,8 @@ def llm_teacher_preset(filename):
         preset["repeat"]="booklet"
     else:
         preset["repeat"]="repeat"
-    preset["duplex"]="2s" if "2s" in filename.lower() else "1s"
+    if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
+        preset["duplex"]="dr"
+    else:
+        preset["duplex"]="2s" if "2s" in filename.lower() else "1s"
     return preset

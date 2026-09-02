@@ -6,14 +6,25 @@ import pathlib, sys, tempfile, types, traceback, json
 
 TOOL = pathlib.Path("C:/ImpositionTool/ImpositionTool.exe")
 
+class BridgeError(Exception):
+    def __init__(self, code, msg):
+        self.code = code
+        self.msg = msg
+        super().__init__(f"[{code}] {msg}")
+
 def _load_engine():
     from PyInstaller.archive.readers import CArchiveReader
     from PyInstaller.loader.pyimod01_archive import ZlibArchiveReader as ZAR
-    r = CArchiveReader(str(TOOL))
-    data = r.extract("PYZ.pyz")
-    tmp = pathlib.Path(tempfile.gettempdir()) / "nanas_pyz.pyz"
-    tmp.write_bytes(data)
-    z = ZAR(str(tmp))
+    if not TOOL.exists():
+        raise BridgeError("E010", f"ImpositionTool.exe tidak ditemukan: {TOOL}")
+    try:
+        r = CArchiveReader(str(TOOL))
+        data = r.extract("PYZ.pyz")
+        tmp = pathlib.Path(tempfile.gettempdir()) / "nanas_pyz.pyz"
+        tmp.write_bytes(data)
+        z = ZAR(str(tmp))
+    except Exception as e:
+        raise BridgeError("E011", f"PyInstaller extract gagal: {e}")
     def load(name):
         if name in sys.modules:
             return sys.modules[name]
@@ -111,7 +122,7 @@ def impose_file(input_pdf, output_pdf, preset=None):
         label_font_size=8,
         bleed_on=bool(preset.get("bleed_on",True)),
         allow_oversize=False,
-        same_front_back=False,
+        same_front_back=bool(preset.get("duplex")=="dr"),
         scale_type="normal",
         scale_target_w_mm=0,
         scale_target_h_mm=0,
@@ -123,5 +134,8 @@ def impose_file(input_pdf, output_pdf, preset=None):
     )
     pathlib.Path(output_pdf).parent.mkdir(parents=True, exist_ok=True)
     print(f"[Bridge] repeat_mode={rm} repeat_n={repeat_n} duplex={kwargs.get('duplex')} mode={kwargs.get('mode')}")
-    eng.impose_pdf(**kwargs)
+    try:
+        eng.impose_pdf(**kwargs)
+    except Exception as e:
+        raise BridgeError("E015", f"impose_pdf error: {e}")
     return True
