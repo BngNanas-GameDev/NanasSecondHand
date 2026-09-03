@@ -138,8 +138,10 @@ def train_rl(filename, corrected_value, cat, reward=1):
     return {"state": state, "action": action_key, "old_Q": old_q, "new_Q": new_q, "reward": reward}
 
 def _dx_repeat_rule(filename, repeat_val):
-    """Aturan: @xKecil → collate-cut, + BOOKLET/Staples tengah → booklet varian"""
+    """Aturan: @xKecil → collate-cut, @xBESAR → repeat, + BOOKLET/Staples tengah → booklet varian"""
     is_booklet = "booklet" in filename.lower() or "staples tengah" in filename.lower() or "staples" in filename.lower()
+    if re.search(r"1d\d+.*@\s*\d+\s*besar", filename, re.I):
+        return "repeat"
     m = re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, re.I)
     if m:
         x = m.group(1)
@@ -190,18 +192,22 @@ def teacher_train(filename, reward=0.8):
         from llm_zen import llm_teacher_preset
         preset = llm_teacher_preset(filename)
         if not preset:
-            # fallback rule tanpa LLM: kromo/vinyl/ac..gr + 1d..
+            # fallback rule tanpa LLM: kromo/vinyl/ac..gr + 1d.. (toleran typo)
             import re as _re
+            try:
+                from bahan_dict import guess_bahan as _guess
+            except ImportError:
+                _guess = lambda t: None
             preset={}
-            if _re.search(r"ac\d+gr", filename, re.I): preset["bahan"]=_re.search(r"ac\d+gr", filename, re.I).group(0).capitalize()
-            elif "kromo" in filename.lower(): preset["bahan"]="Kromo"
-            elif "vinyl" in filename.lower(): preset["bahan"]="Vinyl"
+            _g = _guess(filename)
+            if _g: preset["bahan"]=_g
             m=_re.search(r"1d\d+\s*[=:@]*\s*\d*\s*KECIL", filename, re.I)
             if m: preset["dx"]=_re.sub(r"\s+"," ", m.group(0)).strip()
             # sheet default, finishing crop
             preset["sheet"]="A3+ Full (32.5x48.7cm)"; preset["finishing"]="crop"
             m=_re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, re.I)
-            if m: preset["repeat"]=f"collate-cut({m.group(1)})" if m.group(1)!="1" else "collate-cut"
+            if _re.search(r"1d\d+.*@\s*\d+\s*besar", filename, re.I): preset["repeat"]="repeat"
+            elif m: preset["repeat"]=f"collate-cut({m.group(1)})" if m.group(1)!="1" else "collate-cut"
             elif "booklet" in filename.lower(): preset["repeat"]="booklet"
             else: preset["repeat"]="repeat"
             # duplex dari 1s/2s/dr

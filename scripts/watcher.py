@@ -1,4 +1,5 @@
 """Alur: File masuk -> LLM parse -> RL jawab -> LLM koreksi -> user nilai"""
+import re
 import time, json, sys, traceback
 from pathlib import Path
 
@@ -35,6 +36,16 @@ except ImportError as e:
     print(f"[E006] Gagal load llm_zen: {e}")
     llm_teacher_preset = None
     llm_parse_filename = lambda x: x
+try:
+    from bahan_dict import has_bahan, guess_bahan
+except ImportError as e:
+    print(f"[E006] Gagal load bahan_dict: {e}")
+    has_bahan = lambda t: True
+    guess_bahan = lambda t: None
+try:
+    from stats import log_event
+except ImportError:
+    log_event = lambda *a, **k: None
 
 def err(code, msg):
     print(f"[{code}] {msg}")
@@ -72,9 +83,8 @@ def scan_and_impose():
                 print(f"[SKIP] {src.name} (map)")
                 skipped.add(src.name)
             continue
-        # skip jika tidak ada nama bahan
-        bahan_keywords = ["vinyl","kromo","ac260","ac190","ac230","ac310","hvs","art paper","art carton","ivory","jasmine","british","hanji","manila","kalkir","stiker","sticker","rajawali","ap120","ap150","ap190","pindo","matte","transparant","concord"]
-        if not any(k in src.name.lower() for k in bahan_keywords):
+        # skip jika tidak ada nama bahan (toleran typo: Sriker/Cromo)
+        if not has_bahan(src.name):
             if src.name not in skipped:
                 print(f"[SKIP] {src.name} (tidak ada nama bahan)")
                 skipped.add(src.name)
@@ -188,27 +198,28 @@ def scan_and_impose():
                 print(f"   -> ✅ Benar")
                 preset = guru_preset
                 rl.train_parallel_rl(src.name, preset, reward=1)
+                log_event("benar")
             else:
                 corrected = guru_preset.copy()
                 low = ans.lower()
                 if "bahan" in low:
-                    if "vinyl" in low: corrected["bahan"]="Vinyl"
-                    elif "kromo" in low: corrected["bahan"]="Kromo"
-                    elif "ac260" in low: corrected["bahan"]="Ac260gr"
-                    elif "ac190" in low: corrected["bahan"]="Ac190gr"
-                    else: corrected["bahan"]=ans.split()[-1].capitalize()
+                    _g = guess_bahan(ans)
+                    if _g: corrected["bahan"]=_g
+                    elif not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx")):
+                        corrected["bahan"]=ans.split()[-1].capitalize()
                 if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                 elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                 if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
-                if low in ("2s","2","duplex","bolak","true"): corrected["duplex"]="2s"
-                elif low in ("dr","duplex repeat","bolak sama","bolak balik sama"): corrected["duplex"]="dr"
-                elif low in ("1s","1","simplex","false"): corrected["duplex"]="1s"
+                if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
+                elif "2s" in low or "dua muka" in low or low.strip() in ("2","duplex","bolak","true"): corrected["duplex"]="2s"
+                elif re.search(r"\b1s\b", low) or "satu muka" in low or "simplex" in low or low.strip() in ("1","false"): corrected["duplex"]="1s"
                 if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans
                 elif "repeat" in low: corrected["repeat_mode"]="repeat"
                 elif "unique" in low: corrected["repeat_mode"]="unique"
                 if corrected==guru_preset and len(ans)>2 and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx","bahan")): corrected["bahan"]=ans
                 rl.train_parallel_rl(src.name, corrected, reward=1)
                 print(f"   -> ✅ Koreksi: {corrected}")
+                log_event("koreksi", ",".join(k for k in corrected if corrected.get(k) != guru_preset.get(k)))
                 preset = corrected
         except: preset = guru_preset
 
@@ -219,6 +230,7 @@ def scan_and_impose():
         try:
             impose_file(src, dst, preset)
             print(f"   ✅ Sukses -> {dst}")
+            log_event("sukses")
             try: rl.train_parallel_rl(src.name, preset, reward=0.5)
             except: pass
             try:
@@ -233,12 +245,16 @@ def scan_and_impose():
             count+=1
         except FileNotFoundError:
             err("E010", f"Input file tidak ditemukan: {src}")
+            log_event("gagal", "E010")
         except PermissionError:
             err("E008", f"Gagal impose: permission denied - {src.name}")
+            log_event("gagal", "E008")
         except RuntimeError as e:
             err("E008", f"Gagal impose: {e}")
+            log_event("gagal", "E008")
         except Exception as e:
             err("E008", f"Gagal impose: {e}")
+            log_event("gagal", "E008")
             try: rl.train_parallel_rl(src.name, preset, reward=-1)
             except: pass
             traceback.print_exc()

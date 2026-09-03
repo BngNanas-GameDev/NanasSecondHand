@@ -113,7 +113,7 @@ def impose_file(input_pdf, output_pdf, preset=None):
         duplex=bool(preset.get("duplex","1s") in ("2s","dr")),
         label=readable,
         line_color=str(preset.get("line_color","gray" if preset.get("mode")=="crop" else "black")),
-        line_width=0.25,
+        line_width=0.5,
         inner_crop=bool(preset.get("inner_crop",True if preset.get("mode")=="crop" else False)),
         label_position=preset.get("label_position","auto"),
         repeat_n=repeat_n,

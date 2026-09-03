@@ -1,6 +1,6 @@
 {
-  "input_folder": "L:/2026/Bulan 09 September 2026/02 September 2026 (rabu)/aaDevelop",
-  "output_folder": "L:/2026/Bulan 09 September 2026/02 September 2026 (rabu)/aaDevelop/impose",
+  "input_folder": "L:/2026/Bulan 09 September 2026/03 September 2026 (kamis)/aaDevelop",
+  "output_folder": "L:/2026/Bulan 09 September 2026/03 September 2026 (kamis)/aaDevelop/Impose",
   "tool_path": "C:/ImpositionTool/ImpositionTool.exe",
   "sheet": "A3+ Full (32.5x48.7cm)",
   "repeat_mode": "repeat",
@@ -8,5 +8,5 @@
   "dev_mode": true,
   "use_rl": true,
   "use_llm": true,
-  "uda_folder": "L:/2026/Bulan 09 September 2026/02 September 2026 (rabu)/aaDevelop/uda"
+  "uda_folder": "L:/2026/Bulan 09 September 2026/03 September 2026 (kamis)/aaDevelop/Uda"
 }

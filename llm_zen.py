@@ -77,11 +77,13 @@ def llm_parse_filename(filename):
 def llm_teacher_preset(filename):
     """Guru: tebak preset dengan aturan @xKecil + booklet/staples (fallback rule jika LLM gagal)"""
     import re as _re
+    try:
+        from bahan_dict import guess_bahan
+    except ImportError:
+        guess_bahan = lambda t: None
     preset={}
-    if _re.search(r"ac\d+gr", filename, _re.I): preset["bahan"]=_re.search(r"ac\d+gr", filename, _re.I).group(0).capitalize()
-    elif "kromo" in filename.lower(): preset["bahan"]="Kromo"
-    elif "vinyl" in filename.lower(): preset["bahan"]="Vinyl"
-    elif "hvs" in filename.lower(): preset["bahan"]="Hvs100gr"
+    _g = guess_bahan(filename)
+    if _g: preset["bahan"]=_g
     m=_re.search(r"1d\d+\s*[=:@]*\s*\d*\s*KECIL", filename, _re.I)
     if m: preset["dx"]=_re.sub(r"\s+"," ", m.group(0)).strip()
     preset["sheet"]="A3+ Full (32.5x48.7cm)"
@@ -89,7 +91,9 @@ def llm_teacher_preset(filename):
     if "potong bleed" in filename.lower() or "bleed 2mm" in filename.lower(): preset["finishing"]="bleed"
     is_booklet = "booklet" in filename.lower() or "staples" in filename.lower()
     m=_re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, _re.I)
-    if m:
+    if _re.search(r"1d\d+.*@\s*\d+\s*besar", filename, _re.I):
+        preset["repeat"]="repeat"
+    elif m:
         x = m.group(1)
         if is_booklet:
             preset["repeat"] = "booklet(collate)" if x=="1" else "booklet(repeat)"
