@@ -213,7 +213,11 @@ def teacher_train(filename, reward=0.8):
         norm={}
         if "sheet" in preset: norm["sheet"]=preset["sheet"]
         if "bahan" in preset: norm["bahan"]=preset["bahan"]
-        if "duplex" in preset: norm["duplex"]=preset["duplex"]=="2s" if isinstance(preset["duplex"], str) else bool(preset["duplex"])
+        if "duplex" in preset:
+            _d = preset["duplex"]
+            if isinstance(_d, str) and _d.lower() in ("1s","2s","dr"): norm["duplex"]=_d.lower()
+            elif _d is True or str(_d).lower() in ("true","2s"): norm["duplex"]="2s"
+            else: norm["duplex"]="1s"
         if "dx" in preset: norm["dx"]=preset["dx"]
         if "finishing" in preset: norm["finishing"]=preset["finishing"]
         if "repeat" in preset: norm["repeat_mode"]=preset["repeat"]
@@ -228,7 +232,12 @@ def train_parallel_rl(filename, corrected_preset, reward=1):
         val=None
         if cat=="sheet" and "sheet" in corrected_preset: val=corrected_preset["sheet"]
         elif cat=="bahan" and "bahan" in corrected_preset: val=corrected_preset["bahan"]
-        elif cat=="duplex" and "duplex" in corrected_preset: val=str(corrected_preset["duplex"])
+        elif cat=="duplex" and "duplex" in corrected_preset:
+            _d = corrected_preset["duplex"]
+            if _d is True or str(_d).lower() in ("true","2s"): val="2s"
+            elif _d is False or str(_d).lower() in ("false","1s"): val="1s"
+            elif str(_d).lower()=="dr": val="dr"
+            else: val=str(_d)
         elif cat=="dx" and "dx" in corrected_preset: val=corrected_preset["dx"]
         elif cat=="finishing":
             if "finishing" in corrected_preset: val=str(corrected_preset["finishing"]).lower()

@@ -73,7 +73,7 @@ def scan_and_impose():
                 skipped.add(src.name)
             continue
         # skip jika tidak ada nama bahan
-        bahan_keywords = ["vinyl","kromo","ac260","ac190","ac230","ac310","hvs","art paper","art carton","ivory","jasmine","british","hanji","manila","kalkir","stiker","sticker","rajawali","ap120","ap150","pindo","matte","transparant"]
+        bahan_keywords = ["vinyl","kromo","ac260","ac190","ac230","ac310","hvs","art paper","art carton","ivory","jasmine","british","hanji","manila","kalkir","stiker","sticker","rajawali","ap120","ap150","ap190","pindo","matte","transparant","concord"]
         if not any(k in src.name.lower() for k in bahan_keywords):
             if src.name not in skipped:
                 print(f"[SKIP] {src.name} (tidak ada nama bahan)")
@@ -85,11 +85,18 @@ def scan_and_impose():
                 print(f"[SKIP] {src.name} (master/kalkir)")
                 skipped.add(src.name)
             continue
+        # skip jika tidak ada dx (1d4, 1d12, 1d24, dll)
+        import re
+        if not re.search(r"1d\d+", src.name.lower()):
+            if src.name not in skipped:
+                print(f"[SKIP] {src.name} (tidak ada dx)")
+                skipped.add(src.name)
+            continue
         # ignore test/tes + finishing
         fname_low = src.name.lower()
         is_test = "test" in fname_low or "tes" in fname_low
         if is_test:
-            finishing_keywords = ["spiral kiri","spiral atas","spiral kanan","staples punggung","lem panas","staples tengah"]
+            finishing_keywords = ["spiral kiri","spiral atas","spiral kanan","staples punggung","lem panas","staples tengah","booklet"]
             for kw in finishing_keywords:
                 if kw in fname_low:
                     if src.name not in skipped:
@@ -199,7 +206,7 @@ def scan_and_impose():
                 if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans
                 elif "repeat" in low: corrected["repeat_mode"]="repeat"
                 elif "unique" in low: corrected["repeat_mode"]="unique"
-                if corrected==guru_preset and len(ans)>2: corrected["bahan"]=ans
+                if corrected==guru_preset and len(ans)>2 and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx","bahan")): corrected["bahan"]=ans
                 rl.train_parallel_rl(src.name, corrected, reward=1)
                 print(f"   -> ✅ Koreksi: {corrected}")
                 preset = corrected

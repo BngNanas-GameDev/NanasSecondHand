@@ -76,7 +76,7 @@
     "repeat": 0.717
   },
   "1d2|210x297mm|concord|putih": {
-    "repeat": 0.478
+    "repeat": 0.641
   },
   "1d12|80x140mm|jam|stiker|vynil": {
     "repeat": 0.478
@@ -118,6 +118,36 @@
     "repeat": 0.24
   },
   "1d2|210x297mm|ac230gr|menu": {
+    "repeat": 0.037
+  },
+  "59x94mm|ac230gr|kartu|nama|test": {
+    "repeat": 0.478
+  },
+  "1d2|297x210mm|ac260gr|kecil": {
+    "repeat": 0.478
+  },
+  "1d25|94x59mm|ac230gr|ktn": {
+    "repeat": 0.478
+  },
+  "ap150gr|besar|n686086bl|total": {
+    "repeat": 0.24
+  },
+  "1d1|265x365mm|bingkai|concorde|kertas": {
+    "repeat": 0.478
+  },
+  "1d1|297x395mm|ac230gr|besar": {
+    "repeat": 0.478
+  },
+  "210x297mm|booklet|jasmine|putih|test": {
+    "booklet(repeat)": 0.24
+  },
+  "1d25|94x59mm|ac260gr|kartunama": {
+    "repeat": 0.478
+  },
+  "150x75mm|1d12|ap150gr|test": {
+    "collate-cut": 0.478
+  },
+  "120x120mm|1d8|kromo|stiker": {
     "repeat": 0.037
   }
 }

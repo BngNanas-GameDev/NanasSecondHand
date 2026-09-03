@@ -75,7 +75,7 @@
     "A3+ Full (32.5x48.7cm)": 0.717
   },
   "1d2|210x297mm|concord|putih": {
-    "A3+ Full (32.5x48.7cm)": 0.478
+    "A3+ Full (32.5x48.7cm)": 0.641
   },
   "1d12|80x140mm|jam|stiker|vynil": {
     "A3+ Full (32.5x48.7cm)": 0.478
@@ -117,6 +117,36 @@
     "A3+ Full (32.5x48.7cm)": 0.24
   },
   "1d2|210x297mm|ac230gr|menu": {
+    "A3+ Full (32.5x48.7cm)": 0.037
+  },
+  "59x94mm|ac230gr|kartu|nama|test": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "1d2|297x210mm|ac260gr|kecil": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "1d25|94x59mm|ac230gr|ktn": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "ap150gr|besar|n686086bl|total": {
+    "A3+ Full (32.5x48.7cm)": 0.24
+  },
+  "1d1|265x365mm|bingkai|concorde|kertas": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "1d1|297x395mm|ac230gr|besar": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "210x297mm|booklet|jasmine|putih|test": {
+    "A3+ Full (32.5x48.7cm)": 0.24
+  },
+  "1d25|94x59mm|ac260gr|kartunama": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "150x75mm|1d12|ap150gr|test": {
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "120x120mm|1d8|kromo|stiker": {
     "A3+ Full (32.5x48.7cm)": 0.037
   }
 }
