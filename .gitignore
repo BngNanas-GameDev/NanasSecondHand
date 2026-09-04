@@ -13,3 +13,7 @@ build/
 # build artifacts
 NSHMonitor.exe
 data/backup_*/
+rs_sidecar.exe
+bench_rs_tmp*
+qbench.txt
+*.pdb

@@ -58,6 +58,18 @@ def normalize_dx(v):
         s += f" {m.group(3).upper()}"
     return s
 
+def _bucket_uk(s):
+    """Ukuran produk -> bucket A3+ (325x487): portrait / landscape / oversize."""
+    m = re.match(r"(\d+)x(\d+)mm", s)
+    if not m:
+        return s
+    w, h = int(m.group(1)), int(m.group(2))
+    if w <= 320 and h <= 485:
+        return "1-320x1-485"
+    if w <= 485 and h <= 320:
+        return "1-485x1-320"
+    return "oversize"
+
 def _state_key(filename):
     tmp = re.sub(r"^[^_]+_DITUNGGU_+", "", filename, flags=re.I)
     tmp = re.sub(r"^[^_]+_TUNGGU_+", "", tmp, flags=re.I)
@@ -67,6 +79,7 @@ def _state_key(filename):
     words=[]
     for w in fn.split():
         if len(w)<3: continue
+        if re.match(r"^\d+x\d+mm$", w): continue  # ukuran eksak -> cukup bucketnya
         if w in ("pdf","dan","untuk","lembar","ditunggu","tunggu"): continue
         if re.match(r"^[a-z]+\d+$", w): continue
         if re.match(r"^a\d+l$", w): continue
@@ -74,8 +87,10 @@ def _state_key(filename):
         words.append(w)
         if len(words)>=4: break
     m_uk = re.search(r"\d+x\d+mm", filename.lower())
-    if m_uk and m_uk.group(0) not in words:
-        words.append(m_uk.group(0))
+    if m_uk:
+        bkt = _bucket_uk(m_uk.group(0))
+        if bkt not in words:
+            words.append(bkt)
     m_dx = re.search(r"1d\d+", filename.lower())
     if m_dx and m_dx.group(0) not in words:
         words.append(m_dx.group(0))

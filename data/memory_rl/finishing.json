@@ -480,13 +480,13 @@
     "crop": 0.478
   },
   "100gr|1d2|hvs|kecil": {
-    "crop": 0.641
+    "crop": 0.697
   },
   "1d2|ac230gr|kecil|manual": {
     "crop": 0.641
   },
   "1d25|200|ac230gr|ktn": {
-    "bleed": 0.478
+    "bleed": 0.575
   },
   "1d21|kecil|kromo|stiker": {
     "crop": 0.478
@@ -519,7 +519,7 @@
     "crop": 0.478
   },
   "100|1d25|ac230gr|ktn": {
-    "bleed": 0.478
+    "bleed": 0.641
   },
   "1d4|ap150gr|bsk|jam|test": {
     "bleed": 0.478
@@ -628,6 +628,9 @@
     "crop": 0.641
   },
   "1d36|242|kromo|stiker": {
-    "crop": 0.24
+    "crop": 0.478
+  },
+  "1d2|ac260gr|kecil|press": {
+    "crop": 0.478
   }
 }

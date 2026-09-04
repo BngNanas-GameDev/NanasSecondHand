@@ -472,13 +472,14 @@
     "1d24 = 240 KECIL": 0.478
   },
   "100gr|1d2|hvs|kecil": {
-    "1d2 = 1 KECIL": 0.641
+    "1d2 = 1 KECIL": 0.641,
+    "1d2 = 2 KECIL": 0.723
   },
   "1d2|ac230gr|kecil|manual": {
     "1d2 = 1 KECIL": 0.641
   },
   "1d25|200|ac230gr|ktn": {
-    "1d25 = 200 KECIL": 0.478
+    "1d25 = 200 KECIL": 0.575
   },
   "1d21|kecil|kromo|stiker": {
     "1d21 = 22 KECIL": 0.478
@@ -511,7 +512,7 @@
     "1d40 = 600 KECIL": 0.478
   },
   "100|1d25|ac230gr|ktn": {
-    "1d25 = 100 KECIL": 0.478
+    "1d25 = 100 KECIL": 0.641
   },
   "1d4|ap150gr|bsk|jam|test": {
     "1d4 = 1000 KECIL": 0.478
@@ -622,6 +623,9 @@
     "1d54 = 972 KECIL": 0.643
   },
   "1d36|242|kromo|stiker": {
-    "1d36 = 242 KECIL": 0.24
+    "1d36 = 242 KECIL": 0.478
+  },
+  "1d2|ac260gr|kecil|press": {
+    "1d2 = 2 KECIL": 0.478
   }
 }

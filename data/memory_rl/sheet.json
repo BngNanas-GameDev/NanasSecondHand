@@ -480,13 +480,13 @@
     "A3+ Full (32.5x48.7cm)": 0.478
   },
   "100gr|1d2|hvs|kecil": {
-    "A3+ Full (32.5x48.7cm)": 0.641
+    "A3+ Full (32.5x48.7cm)": 0.697
   },
   "1d2|ac230gr|kecil|manual": {
     "A3+ Full (32.5x48.7cm)": 0.641
   },
   "1d25|200|ac230gr|ktn": {
-    "A3+ Full (32.5x48.7cm)": 0.478
+    "A3+ Full (32.5x48.7cm)": 0.575
   },
   "1d21|kecil|kromo|stiker": {
     "A3+ Full (32.5x48.7cm)": 0.478
@@ -519,7 +519,7 @@
     "A3+ Full (32.5x48.7cm)": 0.478
   },
   "100|1d25|ac230gr|ktn": {
-    "A3+ Full (32.5x48.7cm)": 0.478
+    "A3+ Full (32.5x48.7cm)": 0.641
   },
   "1d4|ap150gr|bsk|jam|test": {
     "A3+ Full (32.5x48.7cm)": 0.478
@@ -627,6 +627,9 @@
     "A3+ Full (32.5x48.7cm)": 0.641
   },
   "1d36|242|kromo|stiker": {
-    "A3+ Full (32.5x48.7cm)": 0.24
+    "A3+ Full (32.5x48.7cm)": 0.478
+  },
+  "1d2|ac260gr|kecil|press": {
+    "A3+ Full (32.5x48.7cm)": 0.478
   }
 }
