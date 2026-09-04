@@ -46,6 +46,18 @@ def _finishing_to_preset(v):
 def _normalize(s):
     return re.sub(r'[^a-z0-9]+',' ', s.lower()).strip()
 
+def normalize_dx(v):
+    """Kanonis: '1d1=3Kecil' / '1d2 = 2 KECIL repeat' -> '1d1 = 3 KECIL'."""
+    m = re.search(r"1d\s*(\d+)\s*(?:[=:@]\s*)?@?\s*(\d+)?\s*(kecil|besar)?", str(v), re.I)
+    if not m:
+        return str(v).strip()
+    s = f"1d{m.group(1)}"
+    if m.group(2):
+        s += f" = {m.group(2)}"
+    if m.group(3):
+        s += f" {m.group(3).upper()}"
+    return s
+
 def _state_key(filename):
     tmp = re.sub(r"^[^_]+_DITUNGGU_+", "", filename, flags=re.I)
     tmp = re.sub(r"^[^_]+_TUNGGU_+", "", tmp, flags=re.I)
@@ -122,10 +134,13 @@ def train_rl(filename, corrected_value, cat, reward=1):
         elif corrected_value.get("mode")=="crop": corrected_value="crop"
         else: corrected_value="crop"
     action_key = str(corrected_value)
+    if cat == "dx":
+        action_key = normalize_dx(action_key)
     old_q = q_table[state].get(action_key, 0)
     new_q = old_q + ALPHA * (reward - old_q)
-    # jika koreksi (reward 1) dan masih kalah dari best lain, paksa overtake biar koreksi langsung muncul
-    if reward==1:
+    # jika koreksi manusia (1) atau guru (0.8) masih kalah dari best lain,
+    # paksa overtake biar koreksi langsung muncul di preset guru
+    if reward >= 0.8:
         other_max = max([v for k,v in q_table[state].items() if k!=action_key], default=0)
         if new_q <= other_max:
             new_q = round(other_max + 0.1, 3)
@@ -201,7 +216,7 @@ def teacher_train(filename, reward=0.8):
             preset={}
             _g = _guess(filename)
             if _g: preset["bahan"]=_g
-            m=_re.search(r"1d\d+\s*[=:@]*\s*\d*\s*KECIL", filename, re.I)
+            m=_re.search(r"1d\d+\s*[=:@]*\s*@?\d*\s*(KECIL|BESAR)", filename, re.I)
             if m: preset["dx"]=_re.sub(r"\s+"," ", m.group(0)).strip()
             # sheet default, finishing crop
             preset["sheet"]="A3+ Full (32.5x48.7cm)"; preset["finishing"]="crop"
@@ -210,11 +225,12 @@ def teacher_train(filename, reward=0.8):
             elif m: preset["repeat"]=f"collate-cut({m.group(1)})" if m.group(1)!="1" else "collate-cut"
             elif "booklet" in filename.lower(): preset["repeat"]="booklet"
             else: preset["repeat"]="repeat"
-            # duplex dari 1s/2s/dr
-            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
-                preset["duplex"]="dr"
-            elif "2s" in filename.lower(): preset["duplex"]="2s"
-            else: preset["duplex"]="1s"
+            # duplex dari 1s/2s/dr (Doff 2s = finishing, bukan duplex)
+            try:
+                from llm_zen import parse_duplex as _pd
+                preset["duplex"] = _pd(filename)
+            except ImportError:
+                preset["duplex"] = "2s" if "2s" in filename.lower() else "1s"
             if not preset.get("bahan") or not preset.get("dx"): return None
         norm={}
         if "sheet" in preset: norm["sheet"]=preset["sheet"]
@@ -262,3 +278,23 @@ def train_parallel_rl(filename, corrected_preset, reward=1):
             cat, res = fut.result()
             if res: results[cat]=res
     return results
+
+AMBIG_GAP = 0.05  # selisih Q top-2 di bawah ini = ambigu
+
+def state_maturity(filename):
+    """Fase 1: (is_new, is_ambig, min_gap) untuk keputusan AUTO."""
+    state = _key_str(_state_key(filename))
+    is_new, is_ambig = False, False
+    min_gap = 1.0
+    for cat in CATEGORIES:
+        acts = _load_q(cat).get(state, {})
+        if not acts:
+            is_new = True
+            continue
+        vals = sorted(acts.values(), reverse=True)
+        if len(vals) > 1:
+            gap = vals[0] - vals[1]
+            min_gap = min(min_gap, gap)
+            if gap < AMBIG_GAP:
+                is_ambig = True
+    return is_new, is_ambig, round(min_gap, 3)

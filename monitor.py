@@ -37,7 +37,7 @@ def analyze():
     """Kembalikan (ringkasan_event, stat_kategori, masalah, rekomendasi)."""
     now = int(time.time())
     ev = read_events()
-    cnt = {"benar": 0, "koreksi": 0, "sukses": 0, "gagal": 0}
+    cnt = {"benar": 0, "koreksi": 0, "sukses": 0, "gagal": 0, "auto": 0}
     last_ts = 0
     for e in ev:
         t = e.get("type")
@@ -47,16 +47,27 @@ def analyze():
             last_ts = e["ts"]
     dinilai = cnt["benar"] + cnt["koreksi"]
     rate = (cnt["koreksi"] / dinilai * 100) if dinilai else 0
+    base_ts = max([e["ts"] for e in ev if e.get("type") == "baseline"] + [0])
+    fresh = [e for e in ev if e.get("ts", 0) > base_ts]
+    fcnt = {"benar": 0, "koreksi": 0, "sukses": 0, "gagal": 0, "auto": 0}
+    for e in fresh:
+        if e.get("type") in fcnt:
+            fcnt[e["type"]] += 1
+    fdinilai = fcnt["benar"] + fcnt["koreksi"]
 
     cat_stat = {}
     ambig_total = 0
     badq_total = 0
+    try:
+        unres = json.loads((BASE / "data" / "unresolvable.json").read_text(encoding="utf-8"))
+    except Exception:
+        unres = {}
     for cat in CATS:
         q = load_q(cat)
         states = len(q)
         bests = []
         matang = mentah = 0
-        for acts in q.values():
+        for st, acts in q.items():
             if not acts:
                 continue
             vals = sorted(acts.values(), reverse=True)
@@ -66,7 +77,7 @@ def analyze():
                 matang += 1
             elif b < 0.35:
                 mentah += 1
-            if len(vals) > 1 and vals[0] - vals[1] < 0.05:
+            if len(vals) > 1 and vals[0] - vals[1] < 0.05 and st not in unres.get(cat, []):
                 ambig_total += 1
             badq_total += sum(1 for v in vals if v <= 0)
         avg = round(sum(bests) / len(bests), 3) if bests else 0
@@ -108,7 +119,10 @@ def analyze():
         rec.append("Semua sehat. Pertahankan penilaian rutin.")
 
     summary = dict(total_ev=len(ev), dinilai=dinilai, rate=round(rate, 1),
-                   last_ts=last_ts, **cnt)
+                   last_ts=last_ts, base_ts=base_ts,
+                   fdinilai=fdinilai, fbenar=fcnt["benar"], fkoreksi=fcnt["koreksi"],
+                   fsukses=fcnt["sukses"], fgagal=fcnt["gagal"], fauto=fcnt["auto"],
+                   **cnt)
     return summary, cat_stat, dirty, ambig_total, rec
 
 
@@ -156,7 +170,8 @@ def main():
             return
         last = time.strftime("%d-%m %H:%M", time.localtime(s["last_ts"])) if s["last_ts"] else "-"
         lines = [
-            f"Data dimakan (dinilai) : {s['dinilai']}  (benar:{s['benar']} koreksi:{s['koreksi']})",
+            f"Data dimakan (dinilai) : {s['dinilai']}  (benar:{s['benar']} koreksi:{s['koreksi']} auto:{s['auto']})",
+            f"Sejak pembersihan      : {s['fdinilai']}  (benar:{s['fbenar']} koreksi:{s['fkoreksi']} auto:{s['fauto']} sukses:{s['fsukses']} gagal:{s['fgagal']})",
             f"Tingkat koreksi        : {s['rate']}%",
             f"Impose sukses / gagal  : {s['sukses']} / {s['gagal']}",
             f"Aktivitas terakhir     : {last}",

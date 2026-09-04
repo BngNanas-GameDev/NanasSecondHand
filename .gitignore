@@ -12,3 +12,4 @@ dist/
 build/
 # build artifacts
 NSHMonitor.exe
+data/backup_*/

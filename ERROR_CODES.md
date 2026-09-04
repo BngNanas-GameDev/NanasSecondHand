@@ -117,15 +117,21 @@ rm data/memory_rl/*.json
 ---
 
 ### E008: impose_file gagal
-**File:** `watcher.py:154-158`  
-**Error:** `❌ Gagal: {e}`  
+**File:** `watcher.py` (blok impose)  
+**Error:** `[E008] Gagal impose: {e}`  
 **Cause:** 
 - ImpositionTool.exe error
 - File PDF corrupt
 - Sheet size tidak valid
+- File hilang/diganti nama saat diproses (lihat `No such file` pada sebab)
+- Oversize (lihat `terlalu besar` pada sebab) → otomatis retry `allow_oversize=True`
+**Cara baca sebab:** log `gagal` di `stats.jsonl` menyimpan `E008:<sebab>` tanpa nama file, mis:
+- `E008:No such file or directory: '?'` → file hilang, tidak dihitung
+- `E008:Halaman input (...) terlalu besar` → oversize
+- `E008:permission` → permission denied
 **Solution:**
 - Cek E010-E015 untuk detail
-- File akan di-retry dengan reward=-1
+- File akan di-retry dengan reward=-1 (kecuali file hilang: tidak dihitung sama sekali)
 
 ---
 

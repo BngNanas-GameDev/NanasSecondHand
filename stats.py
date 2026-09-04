@@ -8,7 +8,7 @@ STATS = BASE / "data" / "stats.jsonl"
 
 
 def log_event(etype, detail=""):
-    """etype: benar | koreksi | sukses | gagal. Tidak menyimpan nama file."""
+    """etype: benar | koreksi | sukses | gagal | auto. Tidak menyimpan nama file."""
     try:
         STATS.parent.mkdir(parents=True, exist_ok=True)
         rec = {"ts": int(time.time()), "type": etype, "detail": str(detail)[:120]}

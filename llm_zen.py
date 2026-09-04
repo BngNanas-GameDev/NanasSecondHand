@@ -1,8 +1,8 @@
 """Zen Free LLM guru untuk RL — muse-spark-1.2-contributor-free"""
-import os, json, pathlib
+import os, json, pathlib, re
 try:
     import requests
-except: 
+except:
     requests=None
 
 ZEN_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -74,6 +74,18 @@ def llm_parse_filename(filename):
     tmp = re.sub(r'\.pdf$', '', tmp, flags=re.I)
     return tmp
 
+def parse_duplex(filename):
+    """1s/2s/dr dari filename. 'Doff 2s'/'Laminasi 2s'/dll itu finishing, bukan duplex."""
+    low = filename.lower()
+    if "data sama" in low or "bolak balik sama" in low:
+        return "dr"
+    tmp = re.sub(r"(doff|dof|laminasi|laminating|glossy|gloss|hologram|canvas|uv|varnish)\s*2s", " ", low)
+    if ("2s" in tmp or "bolak" in low or "dua muka" in low
+            or "depan belakang" in low or "2 sisi" in low):
+        return "2s"
+    return "1s"
+
+
 def llm_teacher_preset(filename):
     """Guru: tebak preset dengan aturan @xKecil + booklet/staples (fallback rule jika LLM gagal)"""
     import re as _re
@@ -84,7 +96,7 @@ def llm_teacher_preset(filename):
     preset={}
     _g = guess_bahan(filename)
     if _g: preset["bahan"]=_g
-    m=_re.search(r"1d\d+\s*[=:@]*\s*\d*\s*KECIL", filename, _re.I)
+    m=_re.search(r"1d\d+\s*[=:@]*\s*@?\d*\s*(KECIL|BESAR)", filename, _re.I)
     if m: preset["dx"]=_re.sub(r"\s+"," ", m.group(0)).strip()
     preset["sheet"]="A3+ Full (32.5x48.7cm)"
     preset["finishing"]="crop"
@@ -103,8 +115,5 @@ def llm_teacher_preset(filename):
         preset["repeat"]="booklet"
     else:
         preset["repeat"]="repeat"
-    if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
-        preset["duplex"]="dr"
-    else:
-        preset["duplex"]="2s" if "2s" in filename.lower() else "1s"
+    preset["duplex"] = parse_duplex(filename)
     return preset

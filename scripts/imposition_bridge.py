@@ -97,8 +97,10 @@ def impose_file(input_pdf, output_pdf, preset=None):
     if m_cc:
         repeat_n = int(m_cc.group(1))
         rm = "collate-cut-repeat" if repeat_n > 1 else "collate-cut"
-    # map varian kapital
-    _rm_map = {"repeat":"repeat","booklet":"booklet","collate-cut":"collate-cut","unique":"unique","repeat mode":"repeat","1":"repeat","repeat;":"repeat"}
+    # map varian kapital + varian booklet RL -> mode asli engine
+    # engine: startswith('booklet') -> _create_booklet_sheets;
+    #   'booklet' -> impose repeat (Booklet Repeat), 'booklet-unique' -> impose collate-cut
+    _rm_map = {"repeat":"repeat","booklet":"booklet","booklet(repeat)":"booklet","booklet(collate)":"booklet-unique","collate-cut":"collate-cut","unique":"unique","repeat mode":"repeat","1":"repeat","repeat;":"repeat"}
     rm = _rm_map.get(rm, rm)
     if rm not in ("repeat","booklet","booklet-unique","unique","collate-cut","collate-cut-repeat","unique-repeat-n"):
         rm = "repeat"
@@ -121,7 +123,7 @@ def impose_file(input_pdf, output_pdf, preset=None):
         page_flip=False,
         label_font_size=8,
         bleed_on=bool(preset.get("bleed_on",True)),
-        allow_oversize=False,
+        allow_oversize=bool(preset.get("allow_oversize", False)),
         same_front_back=bool(preset.get("duplex")=="dr"),
         scale_type="normal",
         scale_target_w_mm=0,
@@ -137,5 +139,14 @@ def impose_file(input_pdf, output_pdf, preset=None):
     try:
         eng.impose_pdf(**kwargs)
     except Exception as e:
-        raise BridgeError("E015", f"impose_pdf error: {e}")
+        msg = str(e)
+        if "terlalu besar" in msg or "Toleransi Ukuran Lebih Besar" in msg or "oversize" in msg.lower():
+            print("[Bridge] oversize terdeteksi, retry dengan allow_oversize=True")
+            kwargs["allow_oversize"] = True
+            try:
+                eng.impose_pdf(**kwargs)
+            except Exception as e2:
+                raise BridgeError("E015", f"impose_pdf error: {e2}")
+        else:
+            raise BridgeError("E015", f"impose_pdf error: {e}")
     return True

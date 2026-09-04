@@ -1,4 +1,5 @@
 """Alur: File masuk -> LLM parse -> RL jawab -> LLM koreksi -> user nilai"""
+import random
 import re
 import time, json, sys, traceback
 from pathlib import Path
@@ -50,7 +51,17 @@ except ImportError:
 def err(code, msg):
     print(f"[{code}] {msg}")
 
+def _sebab(e):
+    """Ringkasan penyebab gagal tanpa path/nama file (privasi pelanggan)."""
+    m = re.sub(r"'[^']*'", "'?'", str(e))
+    m = re.sub(r"[A-Za-z]:\\[^\s]*", "?", m)
+    return m[:80]
+
 skipped=set()
+
+# Fase 1: ambang auto-impose (conf computer: 0.5 + Q*0.3, maks 0.8)
+AUTO_CONF = 0.75
+AUDIT_RATE = 0.10  # 10% file auto-eligible tetap ditanya (spot-check)
 def scan_and_impose():
     pdfs = list(INPUT.glob("*.pdf")) + list(INPUT.glob("*.PDF"))
     if not pdfs:
@@ -59,6 +70,8 @@ def scan_and_impose():
     for src in pdfs:
         if "uda" in src.parts:
             continue
+        if not src.exists():
+            continue  # file keburu dipindah/diganti nama
         # hanya PDF
         if src.suffix.lower() != ".pdf":
             if src.name not in skipped:
@@ -161,6 +174,7 @@ def scan_and_impose():
 
         # 3. LLM koreksi jawaban RL
         guru_preset = rl_preset.copy()
+        guru_conf = 0
         try:
             taught = rl.teacher_train(src.name, reward=0.8)
             if taught:
@@ -191,45 +205,68 @@ def scan_and_impose():
         print(f"   │ Repeat    : {str(guru_preset.get('repeat_mode',''))[:28]:28} │")
         print("   └─────────────────────────────────────────┘")
 
-        # 4. User nilai: benar atau salah
+        # 4. User nilai, atau AUTO (Fase 1): conf tinggi + pola dikenal + tidak ambigu
+        auto = False
         try:
-            ans = input(f"   ✅ Benar? Enter=ya / ketik salah: ").strip()
-            if not ans:
-                print(f"   -> ✅ Benar")
-                preset = guru_preset
-                rl.train_parallel_rl(src.name, preset, reward=1)
-                log_event("benar")
+            is_new, is_ambig, gap = rl.state_maturity(src.name)
+        except Exception:
+            is_new, is_ambig, gap = True, False, 0
+        if guru_conf >= AUTO_CONF and not is_new and not is_ambig:
+            if random.random() < AUDIT_RATE:
+                print(f"   [AUDIT] conf={guru_conf:.2f} kena spot-check, tetap tanya")
             else:
-                corrected = guru_preset.copy()
-                low = ans.lower()
+                auto = True
+                print(f"   [AUTO] conf={guru_conf:.2f} gap={gap}, langsung impose")
+        eval_type, eval_detail = "none", ""
+        if auto:
+            preset = guru_preset
+            eval_type, eval_detail = "auto", f"conf={guru_conf:.2f}"
+        else:
+            try:
+                ans = input(f"   ✅ Benar? Enter=ya / ketik salah: ").strip()
+                if not ans:
+                    print(f"   -> ✅ Benar")
+                    preset = guru_preset
+                    eval_type = "benar"
+                else:
+                    corrected = guru_preset.copy()
+                    low = ans.lower()
                 if "bahan" in low:
                     _g = guess_bahan(ans)
                     if _g: corrected["bahan"]=_g
-                    elif not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx")):
+                    elif low.strip() != "bahan" and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx")):
                         corrected["bahan"]=ans.split()[-1].capitalize()
-                if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
-                elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
-                if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
-                if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
-                elif "2s" in low or "dua muka" in low or low.strip() in ("2","duplex","bolak","true"): corrected["duplex"]="2s"
-                elif re.search(r"\b1s\b", low) or "satu muka" in low or "simplex" in low or low.strip() in ("1","false"): corrected["duplex"]="1s"
-                if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans
-                elif "repeat" in low: corrected["repeat_mode"]="repeat"
-                elif "unique" in low: corrected["repeat_mode"]="unique"
-                if corrected==guru_preset and len(ans)>2 and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx","bahan")): corrected["bahan"]=ans
-                rl.train_parallel_rl(src.name, corrected, reward=1)
-                print(f"   -> ✅ Koreksi: {corrected}")
-                log_event("koreksi", ",".join(k for k in corrected if corrected.get(k) != guru_preset.get(k)))
-                preset = corrected
-        except: preset = guru_preset
+                    if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
+                    elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
+                    if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
+                    if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
+                    elif "2s" in low or "dua muka" in low or low.strip() in ("2","duplex","bolak","true"): corrected["duplex"]="2s"
+                    elif re.search(r"\b1s\b", low) or "satu muka" in low or "simplex" in low or low.strip() in ("1","false"): corrected["duplex"]="1s"
+                    if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans
+                    elif "repeat" in low: corrected["repeat_mode"]="repeat"
+                    elif "unique" in low: corrected["repeat_mode"]="unique"
+                    if corrected==guru_preset and len(ans)>2 and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx","bahan")): corrected["bahan"]=ans
+                    print(f"   -> ✅ Koreksi: {corrected}")
+                    eval_type = "koreksi"
+                    eval_detail = ",".join(k for k in corrected if corrected.get(k) != guru_preset.get(k))
+                    preset = corrected
+            except: preset = guru_preset
 
-        # 5. Impose
+        # 5. Impose (training + stats hanya jika file masih ada & sukses)
         print()
         print(f"   [FINAL] {preset}")
         print()
+        if not src.exists():
+            print(f"   [SKIP] {src.name} sudah dipindah/diganti nama, tidak dihitung")
+            continue
         try:
             impose_file(src, dst, preset)
             print(f"   ✅ Sukses -> {dst}")
+            if eval_type in ("benar", "koreksi"):
+                rl.train_parallel_rl(src.name, preset, reward=1)
+                log_event(eval_type, eval_detail)
+            elif eval_type == "auto":
+                log_event("auto", eval_detail)
             log_event("sukses")
             try: rl.train_parallel_rl(src.name, preset, reward=0.5)
             except: pass
@@ -244,17 +281,16 @@ def scan_and_impose():
                 err("E004", f"Gagal pindah: {e}")
             count+=1
         except FileNotFoundError:
-            err("E010", f"Input file tidak ditemukan: {src}")
-            log_event("gagal", "E010")
+            err("E010", f"Input file tidak ditemukan: {src} (tidak dihitung)")
         except PermissionError:
             err("E008", f"Gagal impose: permission denied - {src.name}")
-            log_event("gagal", "E008")
+            log_event("gagal", "E008:permission")
         except RuntimeError as e:
             err("E008", f"Gagal impose: {e}")
-            log_event("gagal", "E008")
+            log_event("gagal", f"E008:{_sebab(e)}")
         except Exception as e:
             err("E008", f"Gagal impose: {e}")
-            log_event("gagal", "E008")
+            log_event("gagal", f"E008:{_sebab(e)}")
             try: rl.train_parallel_rl(src.name, preset, reward=-1)
             except: pass
             traceback.print_exc()

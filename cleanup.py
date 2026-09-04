@@ -58,10 +58,22 @@ def clean_bahan(q):
 
 
 def clean_dx(q):
-    """Hapus '-' jika key mengandung 1d atau ada dx asli. Return (tanda dihapus, state dibuang)."""
+    """Hapus '-' jika key mengandung 1d atau ada dx asli + merge varian format. Return (tanda dihapus, state dibuang)."""
+    try:
+        from preset_learner_rl import normalize_dx
+    except ImportError:
+        normalize_dx = lambda v: v
     n_del, n_state = 0, 0
     for st in list(q.keys()):
         acts = q[st]
+        merged = {}
+        for k, v in acts.items():
+            nk = normalize_dx(k)
+            if nk != k:
+                n_del += 1
+            merged[nk] = max(merged.get(nk, float("-inf")), v)
+        q[st] = merged
+        acts = merged
         real = [k for k in acts if k.strip() not in ("-", "")]
         if "-" in acts and (re.search(r"1d\d+", st) or real):
             del acts["-"]
