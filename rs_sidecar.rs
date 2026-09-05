@@ -105,6 +105,427 @@ impl<'a> Pr<'a> {
     }
 }
 
+// ---------------- kamus typo (mirror bahan_dict.TYPO_MAP) ----------------
+fn typo_fix(w: &str) -> String {
+    const MAP: &[(&str, &str)] = &[
+        ("cromo", "kromo"),
+        ("chromo", "kromo"),
+        ("kroomo", "kromo"),
+        ("komo", "kromo"),
+        ("sriker", "stiker"),
+        ("stker", "stiker"),
+        ("sicker", "stiker"),
+        ("sticker", "stiker"),
+        ("vynil", "vinyl"),
+        ("vinil", "vinyl"),
+        ("vynyl", "vinyl"),
+        ("finyl", "vinyl"),
+        ("vinly", "vinyl"),
+        ("jasmin", "jasmine"),
+        ("concorde", "concord"),
+        ("trasparant", "transparant"),
+        ("transparan", "transparant"),
+        ("hps", "hvs"),
+        ("hfs", "hvs"),
+        ("rajawli", "rajawali"),
+        ("rajwali", "rajawali"),
+        ("hamji", "hanji"),
+        ("haji", "hanji"),
+        ("artpaper", "art paper"),
+        ("artcarton", "art carton"),
+    ];
+    for (k, v) in MAP {
+        if *k == w {
+            return v.to_string();
+        }
+    }
+    w.to_string()
+}
+
+// ---------------- parsed: bahan/ukuran/duplex/dx/finishing/repeat (mirror llm_teacher_preset) ----------------
+const CANON: &[(&str, &str)] = &[
+    ("transparant", "Transparant"),
+    ("art carton", "Art Carton"),
+    ("art paper", "Art Paper"),
+    ("rajawali", "Rajawali"),
+    ("hologram", "Hologram"),
+    ("hvs100gr", "Hvs100gr"),
+    ("ac260gr", "Ac260gr"),
+    ("ac190gr", "Ac190gr"),
+    ("ac230gr", "Ac230gr"),
+    ("ac310gr", "Ac310gr"),
+    ("ap120gr", "Ap120gr"),
+    ("ap150gr", "Ap150gr"),
+    ("ap190gr", "Ap190gr"),
+    ("concord", "Concord"),
+    ("concorde", "Concord"),
+    ("jasmine", "Jasmine"),
+    ("silver", "Silver"),
+    ("vinyl", "Vinyl"),
+    ("kromo", "Kromo"),
+    ("pindo", "Pindo"),
+    ("ivory", "Ivory"),
+    ("gold", "Gold"),
+    ("hvs", "Hvs100gr"),
+];
+
+fn fix_text(low: &str) -> String {
+    // ganti tiap kata typo, karakter lain (angka/spasi) dipertahankan (mirror fix_typos)
+    let mut out = String::new();
+    let mut w = String::new();
+    for ch in low.chars() {
+        if ch.is_ascii_alphabetic() {
+            w.push(ch);
+        } else {
+            if !w.is_empty() {
+                out.push_str(&typo_fix(&w));
+                w.clear();
+            }
+            out.push(ch);
+        }
+    }
+    if !w.is_empty() {
+        out.push_str(&typo_fix(&w));
+    }
+    out
+}
+
+fn strip_word_2s(s: &str, w: &str) -> String {
+    // buang "<w>\s*2s" tanpa batas kata (mirror re.sub Python)
+    let mut out = String::new();
+    let mut rest = s;
+    loop {
+        match rest.find(w) {
+            Some(p) => {
+                let mut k = p + w.len();
+                let rb = rest.as_bytes();
+                while k < rb.len() && rb[k] == b' ' {
+                    k += 1;
+                }
+                if rest[k..].starts_with("2s") {
+                    out.push_str(&rest[..p]);
+                    out.push(' ');
+                    rest = &rest[k + 2..];
+                } else {
+                    out.push_str(&rest[..p + 1]);
+                    rest = &rest[p + 1..];
+                }
+            }
+            None => {
+                out.push_str(rest);
+                break;
+            }
+        }
+    }
+    out
+}
+
+fn strip_fin_2s(low: &str) -> String {
+    // finishing TANPA hologram (hologram = bahan, kondisional terpisah)
+    let fins = [
+        "doff", "dof", "laminasi", "laminating", "glossy", "gloss", "matte", "canvas",
+        "uv", "varnish",
+    ];
+    let mut tmp = format!(" {} ", low);
+    for f in fins {
+        tmp = strip_word_2s(&tmp, f);
+    }
+    tmp
+}
+
+fn strip_hologram_cond(tmp: &str, fixed: &str) -> String {
+    // hologram = finishing hanya jika ada bahan lain
+    if tmp.contains("hologram")
+        && CANON.iter().any(|(k, _)| *k != "hologram" && fixed.contains(k))
+    {
+        let mut s = String::new();
+        let mut rest = tmp;
+        loop {
+            match rest.find("hologram") {
+                Some(p) => {
+                    let mut k = p + 8;
+                    let rb = rest.as_bytes();
+                    while k < rb.len() && rb[k] == b' ' {
+                        k += 1;
+                    }
+                    if rest[k..].starts_with("2s") {
+                        s.push_str(&rest[..p]);
+                        s.push(' ');
+                        rest = &rest[k + 2..];
+                    } else {
+                        s.push_str(&rest[..p + 1]);
+                        rest = &rest[p + 1..];
+                    }
+                }
+                None => {
+                    s.push_str(rest);
+                    break;
+                }
+            }
+        }
+        return s;
+    }
+    tmp.to_string()
+}
+
+fn guess_bahan(low: &str) -> Option<String> {
+    let fixed = fix_text(low);
+    let t = strip_hologram_cond(&strip_fin_2s(&fixed), &fixed);
+    let b = t.as_bytes();
+    // (ac|ap)\d+\s*gr
+    let mut i = 0;
+    while i + 1 < b.len() {
+        if (b[i] == b'a') && (b[i + 1] == b'c' || b[i + 1] == b'p') {
+            let mut j = i + 2;
+            while j < b.len() && is_digit(b[j]) {
+                j += 1;
+            }
+            if j > i + 2 {
+                let mut k = j;
+                while k < b.len() && b[k] == b' ' {
+                    k += 1;
+                }
+                if t[k..].starts_with("gr") {
+                    let mut s = format!("{}gr", &t[i..j]);
+                    s[0..1].make_ascii_uppercase();
+                    return Some(s);
+                }
+            }
+            i = j;
+        } else {
+            i += 1;
+        }
+    }
+    for (k, v) in CANON {
+        if t.contains(k) {
+            return Some(v.to_string());
+        }
+    }
+    None
+}
+
+fn parse_duplex(low: &str) -> String {
+    // hologram = stiker, tidak mungkin cetak 2s -> SELALU finishing di sini.
+    // (untuk bahan, hologram tetap kertas -> lihat guess_bahan/strip_hologram_cond)
+    // Stiker (Vinyl/Hologram/Gold/Silver, Kromo+stiker) TIDAK PERNAH 2s.
+    // Kromo KERTAS (tanpa kata stiker) bisa 1s/2s normal.
+    if let Some(b) = guess_bahan(low) {
+        if ["Vinyl", "Hologram", "Gold", "Silver"].contains(&b.as_str()) {
+            return "1s".to_string();
+        }
+        if b == "Kromo" && (low.contains("stiker") || low.contains("sticker")) {
+            return "1s".to_string();
+        }
+    }
+    if low.contains("data sama") || low.contains("bolak balik sama") {
+        return "dr".to_string();
+    }
+    let tmp = strip_word_2s(&strip_fin_2s(&format!(" {} ", low)), "hologram");
+    if tmp.contains("2s")
+        || low.contains("bolak")
+        || low.contains("dua muka")
+        || low.contains("depan belakang")
+        || low.contains("2 sisi")
+    {
+        return "2s".to_string();
+    }
+    "1s".to_string()
+}
+
+fn parse_dx(original: &str) -> Option<String> {
+    // 1d\d+\s*[=:@]*\s*@?\d[\d.]*\s*(KECIL|BESAR), kapital unit ikut aslinya
+    let low = original.to_lowercase();
+    if !original.is_ascii() {
+        return parse_dx_low(&low).map(|s| s.to_lowercase());
+    }
+    let b = low.as_bytes();
+    let ob = original.as_bytes();
+    let mut i = 0;
+    while i + 1 < b.len() {
+        if b[i] == b'1' && b[i + 1] == b'd' {
+            let mut j = i + 2;
+            while j < b.len() && is_digit(b[j]) {
+                j += 1;
+            }
+            if j == i + 2 {
+                i += 1;
+                continue;
+            }
+            let mut k = j;
+            while k < b.len() && (b[k] == b'=' || b[k] == b':' || b[k] == b'@' || b[k] == b' ') {
+                k += 1;
+            }
+            if k < b.len() && b[k] == b'@' {
+                k += 1;
+            }
+            // angka boleh bertitik ribuan: 1.000
+            if k >= b.len() || !is_digit(b[k]) {
+                i += 1;
+                continue;
+            }
+            while k < b.len() && (is_digit(b[k]) || b[k] == b'.') {
+                k += 1;
+            }
+            while k < b.len() && b[k] == b' ' {
+                k += 1;
+            }
+            let ulen = if low[k..].starts_with("kecil") {
+                5
+            } else if low[k..].starts_with("besar") {
+                5
+            } else {
+                i += 1;
+                continue;
+            };
+            let raw = std::str::from_utf8(&ob[i..k + ulen]).unwrap_or(&original[i..i]);
+            return Some(raw.split_whitespace().collect::<Vec<_>>().join(" "));
+        }
+        i += 1;
+    }
+    None
+}
+
+// fallback utk nama non-ASCII: kerja di string-lower (unit ikut lower)
+fn parse_dx_low(low: &str) -> Option<String> {
+    let b = low.as_bytes();
+    let mut i = 0;
+    while i + 1 < b.len() {
+        if b[i] == b'1' && b[i + 1] == b'd' {
+            let mut j = i + 2;
+            while j < b.len() && is_digit(b[j]) {
+                j += 1;
+            }
+            if j == i + 2 {
+                i += 1;
+                continue;
+            }
+            let mut k = j;
+            while k < b.len() && (b[k] == b'=' || b[k] == b':' || b[k] == b'@' || b[k] == b' ') {
+                k += 1;
+            }
+            if k < b.len() && b[k] == b'@' {
+                k += 1;
+            }
+            if k >= b.len() || !is_digit(b[k]) {
+                i += 1;
+                continue;
+            }
+            while k < b.len() && (is_digit(b[k]) || b[k] == b'.') {
+                k += 1;
+            }
+            while k < b.len() && b[k] == b' ' {
+                k += 1;
+            }
+            let ulen = if low[k..].starts_with("kecil") || low[k..].starts_with("besar") {
+                5
+            } else {
+                i += 1;
+                continue;
+            };
+            return Some(low[i..k + ulen].split_whitespace().collect::<Vec<_>>().join(" "));
+        }
+        i += 1;
+    }
+    None
+}
+
+fn parse_repeat(low: &str) -> String {
+    let is_booklet = low.contains("booklet") || low.contains("staples");
+    // mirror re.search greedy: anchor 1d paling kiri, '@' valid TERAKHIR
+    let (last_kecil, any_besar) = repeat_parts(low);
+    // @besar dulu (mirror llm_zen)
+    if any_besar {
+        return "repeat".to_string();
+    }
+    if let Some(x) = last_kecil {
+        if is_booklet {
+            return if x == "1" {
+                "booklet(collate)".to_string()
+            } else {
+                "booklet(repeat)".to_string()
+            };
+        }
+        return if x == "1" {
+            "collate-cut".to_string()
+        } else {
+            format!("collate-cut({})", x)
+        };
+    }
+    if is_booklet {
+        return "booklet".to_string();
+    }
+    "repeat".to_string()
+}
+
+// ekor "@...\d+...kecil/besar" mulai dari posisi p (p = setelah '@')
+fn at_tail(low: &str, p: usize) -> Option<(String, bool)> {
+    let b = low.as_bytes();
+    let mut m = p;
+    while m < b.len() && b[m] == b' ' {
+        m += 1;
+    }
+    let ds = m;
+    while m < b.len() && is_digit(b[m]) {
+        m += 1;
+    }
+    if m == ds {
+        return None;
+    }
+    let num = low[ds..m].to_string();
+    while m < b.len() && b[m] == b' ' {
+        m += 1;
+    }
+    if low[m..].starts_with("kecil") {
+        Some((num, false))
+    } else if low[m..].starts_with("besar") {
+        Some((num, true))
+    } else {
+        None
+    }
+}
+
+fn repeat_parts(low: &str) -> (Option<String>, bool) {
+    let b = low.as_bytes();
+    // anchor 1d paling kiri
+    let mut anchor = None;
+    let mut i = 0;
+    while i + 1 < b.len() {
+        if b[i] == b'1' && b[i + 1] == b'd' {
+            let mut j = i + 2;
+            while j < b.len() && is_digit(b[j]) {
+                j += 1;
+            }
+            if j > i + 2 {
+                anchor = Some(j);
+                break;
+            }
+            i = j;
+        } else {
+            i += 1;
+        }
+    }
+    let start = match anchor {
+        Some(s) => s,
+        None => return (None, false),
+    };
+    let mut last_kecil = None;
+    let mut any_besar = false;
+    let mut k = start;
+    while k < b.len() {
+        if b[k] == b'@' {
+            if let Some((num, besar)) = at_tail(low, k + 1) {
+                if besar {
+                    any_besar = true;
+                } else {
+                    last_kecil = Some(num);
+                }
+            }
+        }
+        k += 1;
+    }
+    (last_kecil, any_besar)
+}
+
 // ---------------- port _state_key / _key_str ----------------
 fn is_digit(b: u8) -> bool {
     b.is_ascii_digit()
@@ -225,18 +646,22 @@ fn word_az_digits(w: &str) -> bool {
 }
 
 fn bucket_uk(w: u32, h: u32) -> String {
-    // Bucket A3+ (325x487): portrait / landscape / oversize
-    if w <= 320 && h <= 485 {
-        "1-320x1-485".to_string()
-    } else if w <= 485 && h <= 320 {
-        "1-485x1-320".to_string()
+    // Area cetak 320x482 (kertas 325x487): portrait / landscape / oversize
+    if w <= 320 && h <= 482 {
+        "1-320x1-482".to_string()
+    } else if w <= 482 && h <= 320 {
+        "1-482x1-320".to_string()
     } else {
         "oversize".to_string()
     }
 }
 
 fn find_uk(low: &str) -> Option<String> {
-    // \d+x\d+mm pertama -> bucket
+    find_uk_exact(low).map(|(w, h)| bucket_uk(w, h))
+}
+
+fn find_uk_exact(low: &str) -> Option<(u32, u32)> {
+    // \d+x\d+mm pertama -> dimensi eksak (data, bukan kunci)
     let b = low.as_bytes();
     let mut i = 0;
     while i < b.len() {
@@ -253,7 +678,7 @@ fn find_uk(low: &str) -> Option<String> {
                 }
                 if k > j + 1 && low[k..].starts_with("mm") {
                     let h: u32 = low[j + 1..k].parse().unwrap_or(0);
-                    return Some(bucket_uk(w, h));
+                    return Some((w, h));
                 }
             }
             i = j;
@@ -298,6 +723,10 @@ fn state_key(filename: &str) -> String {
         if w.chars().count() < 3 {
             continue;
         }
+        // angka murni = noise (TOTAL/jumlah)
+        if !w.is_empty() && w.bytes().all(is_digit) {
+            continue;
+        }
         // ukuran eksak (\d+x\d+mm) -> cukup bucketnya
         let b0 = w.as_bytes();
         let mut di = 0;
@@ -332,7 +761,13 @@ fn state_key(filename: &str) -> String {
         if w.starts_with("on") && w.len() > 2 && w[2..].bytes().all(is_digit) {
             continue;
         }
-        words.push(w.to_string());
+        // normalisasi typo: hamji->hanji, sriker->stiker, dst. (mirror Python)
+        for part in typo_fix(w).split_whitespace() {
+            words.push(part.to_string());
+            if words.len() >= 4 {
+                break;
+            }
+        }
         if words.len() >= 4 {
             break;
         }
@@ -353,6 +788,60 @@ fn state_key(filename: &str) -> String {
     v.join("|")
 }
 
+// ---------------- generate: ribuan filename sintetis dari master-list ----------------
+fn run_generate(n: usize) {
+    let bahan = [
+        "Ac260gr", "Ac230gr", "Ac190gr", "Ac150gr", "Ac120gr", "Ap120gr", "Ap150gr",
+        "Ap190gr", "Vinyl", "Kromo", "Hvs100gr", "Concord", "Jasmine", "Rajawali",
+        "Pindo", "Ivory", "Gold", "Silver", "Transparant",
+    ];
+    let duplex = ["1s", "2s", "1s", "2s", "1s", "dr"];
+    let dx = [
+        "(1d1 = 1 KECIL)",
+        "(1d2 = 2 KECIL)",
+        "(1d3 = 3 KECIL)",
+        "(1d4 = 60 KECIL)",
+        "(1d6 = 12 KECIL)",
+        "(1d8 = 8 KECIL)",
+        "(1d12 = 24 KECIL)",
+        "(1d24 = 120 KECIL)",
+        "(1d25 = 100 KECIL)",
+        "(1d40 = 200 KECIL)",
+        "(1d50 = 50 KECIL)",
+        "(1d2 = @2 KECIL)",
+        "(1d25 = @11 KECIL)",
+        "(1d4 = @4 KECIL @1 BESAR)",
+        "(1d1 = @1BESAR)",
+    ];
+    let size = [
+        "(uk.1x1mm)",
+        "(uk.2x2mm)",
+        "(uk.1x2mm)",
+        "(uk.1x3mm)",
+        "(uk.60x90mm)",
+        "(uk.59x94mm)",
+        "(uk.100x180mm)",
+        "(uk.250x400mm)",
+        "(uk.480x320mm)",
+        "(uk.320x480mm)",
+        "(uk.297x210mm)",
+        "(uk.210x297mm)",
+    ];
+    let fin = ["(Potong)", "(Manual Cutter)", "(Potong Bleed 2mm)", "(Potong)"];
+    let extra = ["", "", "", " Booklet", " Staples tengah", " (Doff 2s)"];
+    for i in 0..n {
+        // langkah koprima biar kombinasi tercampur deterministik
+        let b = bahan[(i * 7) % bahan.len()];
+        let d = duplex[(i * 11) % duplex.len()];
+        let dpx = if d == "dr" { "bolak balik sama" } else { d };
+        let x = dx[(i * 13) % dx.len()];
+        let s = size[(i * 5) % size.len()];
+        let f = fin[(i * 3) % fin.len()];
+        let e = extra[(i * 17) % extra.len()];
+        println!("R{:05}_{} {} {} {} - {}{}.pdf", i, b, dpx, s, x, f, e);
+    }
+}
+
 // ---------------- main ----------------
 fn esc(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
@@ -361,8 +850,13 @@ fn esc(s: &str) -> String {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() {
-        eprintln!("pakai: rs_sidecar.exe \"<nama file>\"");
+        eprintln!("pakai: rs_sidecar.exe \"<nama file>\" | --generate N");
         std::process::exit(2);
+    }
+    if args[0] == "--generate" {
+        let n: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(3000);
+        run_generate(n);
+        return;
     }
     let filename = args.join(" ");
     let exe = env::current_exe().unwrap_or_else(|_| PathBuf::from("."));
@@ -377,7 +871,41 @@ fn main() {
         ("repeat", "repeat"),
     ];
     let state = state_key(&filename);
+    let uk_exact = find_uk_exact(&filename.to_lowercase())
+        .map(|(w, h)| format!("{}x{}mm", w, h));
     let mut parts: Vec<String> = vec![format!("\"state\":\"{}\"", esc(&state))];
+    match &uk_exact {
+        Some(u) => parts.push(format!("\"uk_exact\":\"{}\"", esc(u))),
+        None => parts.push("\"uk_exact\":null".to_string()),
+    }
+    // blok parsed: bahan/ukuran/duplex/dx/finishing/repeat
+    let low = filename.to_lowercase();
+    let pb = match guess_bahan(&low) {
+        Some(b) => format!("\"{}\"", esc(&b)),
+        None => "null".to_string(),
+    };
+    let pu = match uk_exact {
+        Some(u) => format!("\"{}\"", esc(&u)),
+        None => "null".to_string(),
+    };
+    let pdx = match parse_dx(&filename) {
+        Some(d) => format!("\"{}\"", esc(&d)),
+        None => "null".to_string(),
+    };
+    let pfin = if low.contains("potong bleed") || low.contains("bleed 2mm") {
+        "bleed"
+    } else {
+        "crop"
+    };
+    parts.push(format!(
+        "\"parsed\":{{\"bahan\":{},\"ukuran\":{},\"duplex\":\"{}\",\"dx\":{},\"finishing\":\"{}\",\"repeat\":\"{}\"}}",
+        pb,
+        pu,
+        parse_duplex(&low),
+        pdx,
+        pfin,
+        esc(&parse_repeat(&low))
+    ));
     for (cat, def) in cats.iter().zip(defaults.iter().map(|(_, d)| *d)) {
         let path = base
             .join("data")

@@ -83,7 +83,22 @@ def analyze():
         avg = round(sum(bests) / len(bests), 3) if bests else 0
         cat_stat[cat] = dict(states=states, avg=avg, matang=matang, mentah=mentah)
 
-    dirty = {"duplex": 0, "bahan": 0, "dx": 0}
+    try:
+        valid = json.loads((BASE / "data" / "validasi.json").read_text(encoding="utf-8"))
+    except Exception:
+        valid = {}
+    n_valid = sum(1 for v in valid.values() if int(v) >= 2)
+    n_states = max((cat_stat[c]["states"] for c in CATS), default=0)
+
+    dirty = {"duplex": 0, "bahan": 0, "dx": 0, "neg": 0}
+    if HAVE_CLEANUP:
+        from cleanup import clean_neg
+        _n = 0
+        for _c in CATS:
+            _q = load_q(_c)
+            _nd, _ = clean_neg(_q)
+            _n += _nd
+        dirty["neg"] = _n
     if HAVE_CLEANUP:
         d = copy.deepcopy(load_q("duplex"))
         dirty["duplex"] = clean_duplex(d)
@@ -101,13 +116,13 @@ def analyze():
         if rate > 30:
             rec.append(f"Koreksi tinggi ({rate:.0f}%). RL belum stabil — tetap nilai manual.")
         elif dinilai >= 20 and rate <= 10:
-            rec.append(f"Koreksi rendah ({rate:.0f}% dari {dinilai}). Siap ke auto-threshold.")
-        if cnt["gagal"]:
-            rec.append(f"Ada {cnt['gagal']} impose gagal. Cek ERROR_CODES.md.")
+            rec.append(f"Koreksi rendah ({rate:.0f}% dari {dinilai}). AUTO aktif bila syarat terpenuhi.")
+        if fcnt["gagal"]:
+            rec.append(f"Ada {fcnt['gagal']} impose gagal sejak pembersihan. Cek ERROR_CODES.md.")
         if last_ts and now - last_ts > 7 * 86400:
             rec.append("Tidak ada aktivitas >7 hari.")
     if sum(dirty.values()):
-        rec.append(f"Q-table kotor (duplex:{dirty['duplex']} bahan:{dirty['bahan']} dx:{dirty['dx']}). Tekan 'Cleanup Now'.")
+        rec.append(f"Q-table kotor (duplex:{dirty['duplex']} bahan:{dirty['bahan']} dx:{dirty['dx']} neg:{dirty['neg']}). Tekan 'Cleanup Now'.")
     if ambig_total:
         rec.append(f"{ambig_total} state ambigu (2 jawaban Q mepet). Tegaskan lewat koreksi manual.")
     if badq_total:
@@ -122,6 +137,7 @@ def analyze():
                    last_ts=last_ts, base_ts=base_ts,
                    fdinilai=fdinilai, fbenar=fcnt["benar"], fkoreksi=fcnt["koreksi"],
                    fsukses=fcnt["sukses"], fgagal=fcnt["gagal"], fauto=fcnt["auto"],
+                   n_valid=n_valid, n_states=n_states,
                    **cnt)
     return summary, cat_stat, dirty, ambig_total, rec
 
@@ -129,7 +145,13 @@ def analyze():
 def run_cleanup():
     if not HAVE_CLEANUP:
         return "Modul cleanup tidak tersedia."
+    from cleanup import clean_neg
     out = []
+    for _c in CATS:
+        _q = load_q(_c)
+        _nd, _ns = clean_neg(_q)
+        (DATA_DIR / f"{_c}.json").write_text(json.dumps(_q, ensure_ascii=False, indent=2), encoding="utf-8")
+        out.append(f"{_c}:{_nd}neg")
     q = load_q("duplex")
     out.append(f"duplex: {clean_duplex(q)} merge")
     (DATA_DIR / "duplex.json").write_text(json.dumps(q, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -175,6 +197,7 @@ def main():
             f"Tingkat koreksi        : {s['rate']}%",
             f"Impose sukses / gagal  : {s['sukses']} / {s['gagal']}",
             f"Aktivitas terakhir     : {last}",
+            f"Siap AUTO (validasi≥2) : {s['n_valid']} / {s['n_states']} pola",
             "",
             f"{'Kategori':<10}{'Pola':>6}{'AvgQ':>7}{'Matang':>8}{'Mentah':>8}",
         ]

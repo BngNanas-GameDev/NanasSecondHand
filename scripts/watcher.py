@@ -109,7 +109,6 @@ def scan_and_impose():
                 skipped.add(src.name)
             continue
         # skip jika tidak ada dx (1d4, 1d12, 1d24, dll)
-        import re
         if not re.search(r"1d\d+", src.name.lower()):
             if src.name not in skipped:
                 print(f"[SKIP] {src.name} (tidak ada dx)")
@@ -132,7 +131,8 @@ def scan_and_impose():
                 UDA.mkdir(parents=True, exist_ok=True)
                 src.rename(UDA / src.name)
                 print(f"[AI] Sudah ada di impose, pindah ke uda/: {src.name}")
-            except: pass
+            except Exception as e:
+                err("E004", f"Gagal pindah duplikat: {e}")
             continue
 
         print("\n" + "="*60)
@@ -149,9 +149,6 @@ def scan_and_impose():
         # 2. RL jawab preset dari Q-table
         try:
             rl_preset, rl_conf, rl_results = rl.suggest_parallel_rl(src.name)
-            # normalize duplex boolean -> string
-            if rl_preset.get("duplex") is True: rl_preset["duplex"]="2s"
-            elif rl_preset.get("duplex") is False: rl_preset["duplex"]="1s"
         except Exception as e:
             err("E005", f"RL suggest gagal: {e}")
             rl_preset = {"sheet":"A3+ Full (32.5x48.7cm)","bahan":"-","duplex":"1s","dx":"-","mode":"crop","bleed_mm":0,"inner_crop":True,"mark_len_mm":5,"bleed_on":True,"line_color":"gray","repeat_mode":"repeat"}
@@ -164,7 +161,7 @@ def scan_and_impose():
             v,c,i = rl_results.get(cat, ("-",0,None))
             flag = "RL" if isinstance(i, dict) and i.get("rl") else "cold"
             q_str = f" Q={i.get('Q'):.2f}" if isinstance(i, dict) and "Q" in i else ""
-            if cat=="duplex": v = "2s" if v==True else "1s" if v==False else str(v)
+            if cat=="duplex": v = str(v)
             if cat=="finishing":
                 if isinstance(v, dict): v = "bleed 2mm" if v.get("bleed_mm")==2 else "crop" if v.get("mode")=="crop" else "-"
                 elif v=="bleed": v = "bleed 2mm"
@@ -176,11 +173,13 @@ def scan_and_impose():
         guru_preset = rl_preset.copy()
         guru_conf = 0
         try:
-            taught = rl.teacher_train(src.name, reward=0.8)
+            _cold = {c for c in ["sheet", "bahan", "duplex", "dx", "finishing", "repeat"]
+                     if not (isinstance(rl_results.get(c, (None, 0, None))[2], dict)
+                             and rl_results[c][2].get("rl"))}
+            taught = rl.teacher_train(src.name, rl_preset=rl_preset, reward=0.8,
+                                      cold_cats=_cold)
             if taught:
                 guru_preset, guru_conf, _ = rl.suggest_parallel_rl(src.name)
-                if guru_preset.get("duplex") is True: guru_preset["duplex"]="2s"
-                elif guru_preset.get("duplex") is False: guru_preset["duplex"]="1s"
                 diff = {k:v for k,v in guru_preset.items() if v != rl_preset.get(k)}
                 if diff:
                     print(f"[Guru] Koreksi RL: {diff}")
@@ -211,7 +210,8 @@ def scan_and_impose():
             is_new, is_ambig, gap = rl.state_maturity(src.name)
         except Exception:
             is_new, is_ambig, gap = True, False, 0
-        if guru_conf >= AUTO_CONF and not is_new and not is_ambig:
+        if guru_conf >= AUTO_CONF and not is_new and not is_ambig \
+                and rl.validasi_count(src.name) >= rl.VALID_MIN_AUTO:
             if random.random() < AUDIT_RATE:
                 print(f"   [AUDIT] conf={guru_conf:.2f} kena spot-check, tetap tanya")
             else:
@@ -231,11 +231,11 @@ def scan_and_impose():
                 else:
                     corrected = guru_preset.copy()
                     low = ans.lower()
-                if "bahan" in low:
-                    _g = guess_bahan(ans)
-                    if _g: corrected["bahan"]=_g
-                    elif low.strip() != "bahan" and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx")):
-                        corrected["bahan"]=ans.split()[-1].capitalize()
+                    if "bahan" in low:
+                        _g = guess_bahan(ans)
+                        if _g: corrected["bahan"]=_g
+                        elif low.strip() != "bahan" and not any(k in low for k in ("repeat","collate","booklet","unique","duplex","2s","1s","bleed","crop","dx")):
+                            corrected["bahan"]=ans.split()[-1].capitalize()
                     if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
@@ -250,7 +250,7 @@ def scan_and_impose():
                     eval_type = "koreksi"
                     eval_detail = ",".join(k for k in corrected if corrected.get(k) != guru_preset.get(k))
                     preset = corrected
-            except: preset = guru_preset
+            except Exception: preset = guru_preset  # Exception saja: Ctrl+C tetap stop
 
         # 5. Impose (training + stats hanya jika file masih ada & sukses)
         print()
@@ -263,13 +263,17 @@ def scan_and_impose():
             impose_file(src, dst, preset)
             print(f"   ✅ Sukses -> {dst}")
             if eval_type in ("benar", "koreksi"):
-                rl.train_parallel_rl(src.name, preset, reward=1)
+                try:
+                    rl.train_parallel_rl(src.name, preset, reward=1)
+                    rl.catat_validasi(src.name)
+                except Exception as e:
+                    err("E009", f"Training validasi gagal: {e}")
                 log_event(eval_type, eval_detail)
             elif eval_type == "auto":
                 log_event("auto", eval_detail)
             log_event("sukses")
             try: rl.train_parallel_rl(src.name, preset, reward=0.5)
-            except: pass
+            except Exception as e: err("E009", f"Training sukses gagal: {e}")
             try:
                 UDA.mkdir(parents=True, exist_ok=True)
                 target = UDA / src.name
@@ -292,7 +296,7 @@ def scan_and_impose():
             err("E008", f"Gagal impose: {e}")
             log_event("gagal", f"E008:{_sebab(e)}")
             try: rl.train_parallel_rl(src.name, preset, reward=-1)
-            except: pass
+            except Exception as e: err("E009", f"Training hukuman gagal: {e}")
             traceback.print_exc()
     return count
 
@@ -318,7 +322,7 @@ def ask_folders():
         out = input("📁 Dimana folder OUTPUT? Copas path: ").strip().strip('"').strip("'")
         if out:
             out_path = Path(out)
-            INPUT.mkdir(parents=True, exist_ok=True)
+            OUTPUT.mkdir(parents=True, exist_ok=True)
             if out_path.exists() or out_path.parent.exists():
                 OUTPUT = out_path
                 cfg["output_folder"] = str(OUTPUT).replace("\\","/")

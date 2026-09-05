@@ -10,8 +10,9 @@
 | E005 | watcher.py | RL suggest_parallel_rl gagal | HIGH |
 | E006 | watcher.py | LLM teacher_train gagal | MEDIUM |
 | E007 | watcher.py | User input error (EOFError) | LOW |
-| E008 | watcher.py | impose_file gagal | HIGH |
-| E009 | watcher.py | Training RL gagal | MEDIUM |
+| E008 | watcher.py (blok impose) | impose_file gagal | HIGH |
+| E009 | watcher.py (guard training) | Training RL gagal (terlihat, tidak silent) | MEDIUM |
+| E023 | preset_learner_rl.py (catat_validasi) | Validasi manusia gagal dicatat (AUTO-gate buta sementara) | MEDIUM |
 | E010 | imposition_bridge.py | ImpositionTool.exe tidak ditemukan | CRITICAL |
 | E011 | imposition_bridge.py | PyInstaller extract gagal | HIGH |
 | E012 | imposition_bridge.py | Engine module load gagal | HIGH |
@@ -21,10 +22,10 @@
 | E016 | preset_learner_rl.py | Q-table load/save gagal | MEDIUM |
 | E017 | preset_learner_rl.py | State key generation error | LOW |
 | E018 | preset_learner_rl.py | Concurrent execution error | MEDIUM |
-| E019 | llm_zen.py | API key tidak ditemukan | HIGH |
-| E020 | llm_zen.py | LLM API call gagal | MEDIUM |
-| E021 | llm_zen.py | Response parse error | LOW |
-| E022 | llm_zen.py | requests module tidak ada | HIGH |
+| E019 | llm_zen.py | API key tidak ditemukan (PENSIUN v3.0: LLM API dibuang, guru murni aturan) | - |
+| E020 | llm_zen.py | LLM API call gagal (PENSIUN v3.0) | - |
+| E021 | llm_zen.py | Response parse error (masih dipakai: parse filename gagal) | LOW |
+| E022 | llm_zen.py | requests module tidak ada (PENSIUN v3.0: requests dibuang) | - |
 
 ---
 
@@ -136,14 +137,24 @@ rm data/memory_rl/*.json
 ---
 
 ### E009: Training RL gagal
-**File:** `watcher.py:144-145, 156-157`  
-**Error:** Exception saat training (silent)  
-**Cause:** 
-- Q-table sedang ditulis
-- Concurrent write conflict
+**File:** guard `try/except E009` di `watcher.py` (blok sukses/gagal)
+**Error:** training Q-table gagal tapi impose jalan terus
+**Cause:**
+- Q-table corrupt / terkunci proses lain
+- Concurrent write dengan cleanup/monitor
 **Solution:**
-- Error di-ignore (non-critical)
-- Q-table mungkin perlu rebuild
+- Error kini TAMPIL (dulu silent), cek pesannya
+- Jika berulang: `python cleanup.py` lalu cek `data/memory_rl/*.json`
+
+---
+
+### E023: Validasi gagal dicatat
+**File:** `preset_learner_rl.py` (`catat_validasi`)
+**Error:** `[E023] Validasi gagal dicatat`
+**Cause:** `data/validasi.json` corrupt / permission
+**Solution:**
+- Syarat AUTO (validasi≥2) tidak terpenuhi sementara → file ditanya manual (aman)
+- Hapus/rename `data/validasi.json` agar dibuat ulang kosong
 
 ---
 

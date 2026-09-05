@@ -91,11 +91,13 @@ def main():
             if not ex:
                 print("  -> butuh contoh file, dilewati"); done["skip"] += 1; continue
             rl.train_rl(ex[0], a[0], cat, reward=1)
+            rl.catat_validasi(ex[0])
             print(f"  -> {a[0]} menang"); done["A/B"] += 1
         elif ans == "b":
             if not ex:
                 print("  -> butuh contoh file, dilewati"); done["skip"] += 1; continue
             rl.train_rl(ex[0], b[0], cat, reward=1)
+            rl.catat_validasi(ex[0])
             print(f"  -> {b[0]} menang"); done["A/B"] += 1
         elif ans == "c":
             unres.setdefault(cat, set()).add(st)

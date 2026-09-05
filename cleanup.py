@@ -11,7 +11,7 @@ from pathlib import Path
 BASE = Path(__file__).parent
 DATA_DIR = BASE / "data" / "memory_rl"
 
-BAD_BAHAN = {"repeat", "repeat repeat", "salah"}
+BAD_BAHAN = {"repeat", "repeat repeat", "salah", "bahan", "matte"}
 
 
 def _load(cat):
@@ -57,6 +57,20 @@ def clean_bahan(q):
     return n_del, n_state
 
 
+def clean_neg(q):
+    """Buang action Q<=0 (hukuman gagal/koreksi yang terkubur, tak pernah menang).
+    Return (action dibuang, state kosong dibuang)."""
+    n_del, n_state = 0, 0
+    for st in list(q.keys()):
+        for a in [a for a, v in q[st].items() if v <= 0]:
+            del q[st][a]
+            n_del += 1
+        if not q[st]:
+            del q[st]
+            n_state += 1
+    return n_del, n_state
+
+
 def clean_dx(q):
     """Hapus '-' jika key mengandung 1d atau ada dx asli + merge varian format. Return (tanda dihapus, state dibuang)."""
     try:
@@ -88,26 +102,28 @@ def main():
     fix = "--fix" in sys.argv
     mode = "FIX" if fix else "DRY-RUN"
 
-    duplex = _load("duplex")
-    bahan = _load("bahan")
-    dx = _load("dx")
-
     # hitung di salinan dulu kalau dry-run
     import copy
-    d_dup, d_bah, d_dx = copy.deepcopy(duplex), copy.deepcopy(bahan), copy.deepcopy(dx)
-    n_dup = clean_duplex(d_dup)
-    n_bah, n_bah_st = clean_bahan(d_bah)
-    n_dx, n_dx_st = clean_dx(d_dx)
+    from preset_learner_rl import CATEGORIES
+    tables = {c: copy.deepcopy(_load(c)) for c in CATEGORIES}
+    n_dup = clean_duplex(tables["duplex"])
+    n_bah, n_bah_st = clean_bahan(tables["bahan"])
+    n_dx, n_dx_st = clean_dx(tables["dx"])
+    n_neg, n_neg_st = 0, 0
+    for c in CATEGORIES:
+        a, b = clean_neg(tables[c])
+        n_neg += a
+        n_neg_st += b
 
     print(f"[Cleanup Team] mode={mode}")
     print(f"  duplex: {n_dup} state perlu merge True/False")
     print(f"  bahan : {n_bah} action nyasar, {n_bah_st} state kosong")
     print(f"  dx    : {n_dx} tanda '-' bermasalah, {n_dx_st} state kosong")
+    print(f"  neg   : {n_neg} hukuman terkubur, {n_neg_st} state kosong")
 
     if fix:
-        _save("duplex", d_dup)
-        _save("bahan", d_bah)
-        _save("dx", d_dx)
+        for c in CATEGORIES:
+            _save(c, tables[c])
         print("[Cleanup Team] tersimpan. Q-table bersih.")
     else:
         print("[Cleanup Team] tambah --fix untuk eksekusi.")

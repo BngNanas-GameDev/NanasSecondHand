@@ -47,13 +47,14 @@ def _normalize(s):
     return re.sub(r'[^a-z0-9]+',' ', s.lower()).strip()
 
 def normalize_dx(v):
-    """Kanonis: '1d1=3Kecil' / '1d2 = 2 KECIL repeat' -> '1d1 = 3 KECIL'."""
-    m = re.search(r"1d\s*(\d+)\s*(?:[=:@]\s*)?@?\s*(\d+)?\s*(kecil|besar)?", str(v), re.I)
+    """Kanonis: '1d1=3Kecil' / '1d2 = 2 KECIL repeat' / '1d4 = 1.000 KECIL'
+    -> '1d1 = 3 KECIL'. Titik ribuan dibuang."""
+    m = re.search(r"1d\s*(\d+)\s*(?:[=:@]\s*)?@?\s*(\d[\d.]*)?\s*(kecil|besar)?", str(v), re.I)
     if not m:
         return str(v).strip()
     s = f"1d{m.group(1)}"
     if m.group(2):
-        s += f" = {m.group(2)}"
+        s += f" = {m.group(2).replace('.', '')}"
     if m.group(3):
         s += f" {m.group(3).upper()}"
     return s
@@ -64,10 +65,10 @@ def _bucket_uk(s):
     if not m:
         return s
     w, h = int(m.group(1)), int(m.group(2))
-    if w <= 320 and h <= 485:
-        return "1-320x1-485"
-    if w <= 485 and h <= 320:
-        return "1-485x1-320"
+    if w <= 320 and h <= 482:
+        return "1-320x1-482"
+    if w <= 482 and h <= 320:
+        return "1-482x1-320"
     return "oversize"
 
 def _state_key(filename):
@@ -76,15 +77,22 @@ def _state_key(filename):
     tmp = re.sub(r"\(A\d+L[^)]*\)", " ", tmp, flags=re.I)
     tmp = re.sub(r"ON\d+", " ", tmp, flags=re.I)
     fn = _normalize(tmp)
+    try:
+        from bahan_dict import TYPO_MAP as _TYPO
+    except ImportError:
+        _TYPO = {}
     words=[]
     for w in fn.split():
         if len(w)<3: continue
+        if re.fullmatch(r"\d+", w): continue  # angka murni = noise (TOTAL/jumlah)
         if re.match(r"^\d+x\d+mm$", w): continue  # ukuran eksak -> cukup bucketnya
         if w in ("pdf","dan","untuk","lembar","ditunggu","tunggu"): continue
         if re.match(r"^[a-z]+\d+$", w): continue
         if re.match(r"^a\d+l$", w): continue
         if re.match(r"^on\d+$", w): continue
-        words.append(w)
+        for part in _TYPO.get(w, w).split():  # hamji->hanji, dst.
+            words.append(part)
+            if len(words)>=4: break
         if len(words)>=4: break
     m_uk = re.search(r"\d+x\d+mm", filename.lower())
     if m_uk:
@@ -216,49 +224,168 @@ def suggest_parallel_rl(filename):
     conf_avg/=len(cats)
     return preset, conf_avg, results
 
-def teacher_train(filename, reward=0.8):
+def _dstr(v):
+    """Normalisasi nilai duplex ke 1s/2s/dr."""
+    if v is True or str(v).lower() in ("true", "2s"):
+        return "2s"
+    if v is False or str(v).lower() in ("false", "1s"):
+        return "1s"
+    if str(v).lower() == "dr":
+        return "dr"
+    return str(v)
+
+
+def _fstr(preset):
+    """Jawaban finishing sebagai string crop/bleed."""
+    if isinstance(preset, dict):
+        if preset.get("finishing"):
+            return str(preset["finishing"]).lower()
+        if preset.get("bleed_mm") == 2:
+            return "bleed"
+        if preset.get("mode") == "crop":
+            return "crop"
+    return "crop"
+
+
+def guru_preset_for(filename):
+    """Preset guru (norm) tanpa melatih. Return None jika guru angkat tangan."""
+    from llm_zen import llm_teacher_preset
+    preset = llm_teacher_preset(filename)
+    if not preset:
+        import re as _re
+        try:
+            from bahan_dict import guess_bahan as _guess
+        except ImportError:
+            _guess = lambda t: None
+        preset = {}
+        _g = _guess(filename)
+        if _g:
+            preset["bahan"] = _g
+        m = _re.search(r"1d\d+\s*[=:@]*\s*@?\d[\d.]*\s*(KECIL|BESAR)", filename, re.I)
+        if m:
+            preset["dx"] = _re.sub(r"\s+", " ", m.group(0)).strip()
+        preset["sheet"] = "A3+ Full (32.5x48.7cm)"
+        preset["finishing"] = "crop"
+        m = _re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, re.I)
+        if _re.search(r"1d\d+.*@\s*\d+\s*besar", filename, re.I):
+            preset["repeat"] = "repeat"
+        elif m:
+            preset["repeat"] = f"collate-cut({m.group(1)})" if m.group(1) != "1" else "collate-cut"
+        elif "booklet" in filename.lower():
+            preset["repeat"] = "booklet"
+        else:
+            preset["repeat"] = "repeat"
+        try:
+            from llm_zen import parse_duplex as _pd
+            preset["duplex"] = _pd(filename)
+        except ImportError:
+            _low2 = filename.lower()
+            _stiker = any(k in _low2 for k in ("vinyl", "hologram", "gold", "silver"))
+            _stiker = _stiker or (any(k in _low2 for k in ("kromo", "cromo")) and ("stiker" in _low2 or "sticker" in _low2))
+            if _stiker:
+                preset["duplex"] = "1s"
+            else:
+                _tmp = re.sub(r"(doff|dof|laminasi|laminating|glossy|gloss|matte|hologram|canvas|uv|varnish)\s*2s", " ", _low2)
+                preset["duplex"] = "2s" if "2s" in _tmp else "1s"
+    if not preset.get("bahan") or not preset.get("dx"):
+        return None
+    norm = {}
+    if "sheet" in preset:
+        norm["sheet"] = preset["sheet"]
+    if "bahan" in preset:
+        norm["bahan"] = preset["bahan"]
+    if "duplex" in preset:
+        _d = preset["duplex"]
+        if isinstance(_d, str) and _d.lower() in ("1s", "2s", "dr"):
+            norm["duplex"] = _d.lower()
+        elif _d is True or str(_d).lower() in ("true", "2s"):
+            norm["duplex"] = "2s"
+        else:
+            norm["duplex"] = "1s"
+    if "dx" in preset:
+        norm["dx"] = preset["dx"]
+    if "finishing" in preset:
+        norm["finishing"] = preset["finishing"]
+    if "repeat" in preset:
+        norm["repeat_mode"] = preset["repeat"]
+    return norm
+
+
+def _action_for(cat, preset):
+    """Nilai preset -> action space train_rl. None jika tak ada."""
+    if cat == "sheet" and "sheet" in preset:
+        return preset["sheet"]
+    elif cat == "bahan" and "bahan" in preset:
+        return preset["bahan"]
+    elif cat == "duplex" and "duplex" in preset:
+        return _dstr(preset["duplex"])
+    elif cat == "dx" and "dx" in preset:
+        return preset["dx"]
+    elif cat == "finishing":
+        if "finishing" in preset:
+            return str(preset["finishing"]).lower()
+        elif preset.get("bleed_mm") == 2:
+            return "bleed"
+        elif preset.get("mode") == "crop":
+            return "crop"
+        return "crop"
+    elif cat == "repeat" and "repeat_mode" in preset:
+        return preset["repeat_mode"]
+    return None
+
+
+def auto_train(filename, rl_raw, guru_norm):
+    """Tes-auto tanpa manusia, PER KATEGORI: setuju -> +1, dikoreksi ->
+    benar +1 (overtake) + salah -1. Return (setuju, koreksi)."""
+    setuju = koreksi = 0
+    for cat in CATEGORIES:
+        g = _action_for(cat, guru_norm) if cat != "repeat" else guru_norm.get("repeat_mode")
+        r = _action_for(cat, rl_raw) if cat != "repeat" else rl_raw.get("repeat_mode", rl_raw.get("repeat"))
+        if cat == "dx":
+            g = normalize_dx(g) if g else None
+            r = normalize_dx(r) if r else None
+        if g is None or r is None:
+            continue
+        if g == r:
+            train_rl(filename, g, cat, reward=1)
+            setuju += 1
+        else:
+            train_rl(filename, g, cat, reward=1)
+            train_rl(filename, r, cat, reward=-1)
+            koreksi += 1
+    return setuju, koreksi
+
+
+def teacher_train(filename, rl_preset=None, reward=0.8, cold_cats=None):
+    """LLM guru train RL saat cold-start, fallback rule jika LLM gagal.
+    cold_cats: kategori yang RL-nya masih default -> jangan dihukum."""
     """LLM guru train RL saat cold-start, fallback rule jika LLM gagal"""
     try:
-        from llm_zen import llm_teacher_preset
-        preset = llm_teacher_preset(filename)
-        if not preset:
-            # fallback rule tanpa LLM: kromo/vinyl/ac..gr + 1d.. (toleran typo)
-            import re as _re
+        norm = guru_preset_for(filename)
+        if not norm:
+            return None
+        res = train_parallel_rl(filename, norm, reward=reward)
+        # diferensial: kategori yang DIKOREKSI guru -> jawaban RL-nya dihukum ringan.
+        # yang disetujui sudah ikut ter-reinforce di train di atas.
+        if rl_preset:
             try:
-                from bahan_dict import guess_bahan as _guess
-            except ImportError:
-                _guess = lambda t: None
-            preset={}
-            _g = _guess(filename)
-            if _g: preset["bahan"]=_g
-            m=_re.search(r"1d\d+\s*[=:@]*\s*@?\d*\s*(KECIL|BESAR)", filename, re.I)
-            if m: preset["dx"]=_re.sub(r"\s+"," ", m.group(0)).strip()
-            # sheet default, finishing crop
-            preset["sheet"]="A3+ Full (32.5x48.7cm)"; preset["finishing"]="crop"
-            m=_re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, re.I)
-            if _re.search(r"1d\d+.*@\s*\d+\s*besar", filename, re.I): preset["repeat"]="repeat"
-            elif m: preset["repeat"]=f"collate-cut({m.group(1)})" if m.group(1)!="1" else "collate-cut"
-            elif "booklet" in filename.lower(): preset["repeat"]="booklet"
-            else: preset["repeat"]="repeat"
-            # duplex dari 1s/2s/dr (Doff 2s = finishing, bukan duplex)
-            try:
-                from llm_zen import parse_duplex as _pd
-                preset["duplex"] = _pd(filename)
-            except ImportError:
-                preset["duplex"] = "2s" if "2s" in filename.lower() else "1s"
-            if not preset.get("bahan") or not preset.get("dx"): return None
-        norm={}
-        if "sheet" in preset: norm["sheet"]=preset["sheet"]
-        if "bahan" in preset: norm["bahan"]=preset["bahan"]
-        if "duplex" in preset:
-            _d = preset["duplex"]
-            if isinstance(_d, str) and _d.lower() in ("1s","2s","dr"): norm["duplex"]=_d.lower()
-            elif _d is True or str(_d).lower() in ("true","2s"): norm["duplex"]="2s"
-            else: norm["duplex"]="1s"
-        if "dx" in preset: norm["dx"]=preset["dx"]
-        if "finishing" in preset: norm["finishing"]=preset["finishing"]
-        if "repeat" in preset: norm["repeat_mode"]=preset["repeat"]
-        return train_parallel_rl(filename, norm, reward=reward)
+                cold = set(cold_cats or [])
+                pairs = [("sheet", "sheet", str), ("bahan", "bahan", str),
+                         ("dx", "dx", normalize_dx),
+                         ("repeat", "repeat_mode", str)]
+                for cat, rk, fn in pairs:
+                    if cat in norm and rk in rl_preset:
+                        if fn(norm[cat]) != fn(rl_preset[rk]) and cat not in cold:
+                            train_rl(filename, fn(rl_preset[rk]), cat, reward=-0.5)
+                if "duplex" in norm and "duplex" in rl_preset:
+                    if _dstr(norm["duplex"]) != _dstr(rl_preset["duplex"]) and "duplex" not in cold:
+                        train_rl(filename, _dstr(rl_preset["duplex"]), "duplex", reward=-0.5)
+                if "finishing" in norm:
+                    if _fstr({"finishing": norm["finishing"]}) != _fstr(rl_preset) and "finishing" not in cold:
+                        train_rl(filename, _fstr(rl_preset), "finishing", reward=-0.5)
+            except Exception as e:
+                print(f"[Guru] diferensial gagal: {e}")
+        return res
     except Exception as e:
         print(f"[Guru] gagal: {e}")
         return None
@@ -266,24 +393,10 @@ def teacher_train(filename, reward=0.8):
 def train_parallel_rl(filename, corrected_preset, reward=1):
     import concurrent.futures
     def task(cat):
-        val=None
-        if cat=="sheet" and "sheet" in corrected_preset: val=corrected_preset["sheet"]
-        elif cat=="bahan" and "bahan" in corrected_preset: val=corrected_preset["bahan"]
-        elif cat=="duplex" and "duplex" in corrected_preset:
-            _d = corrected_preset["duplex"]
-            if _d is True or str(_d).lower() in ("true","2s"): val="2s"
-            elif _d is False or str(_d).lower() in ("false","1s"): val="1s"
-            elif str(_d).lower()=="dr": val="dr"
-            else: val=str(_d)
-        elif cat=="dx" and "dx" in corrected_preset: val=corrected_preset["dx"]
-        elif cat=="finishing":
-            if "finishing" in corrected_preset: val=str(corrected_preset["finishing"]).lower()
-            elif corrected_preset.get("bleed_mm")==2: val="bleed"
-            elif corrected_preset.get("mode")=="crop": val="crop"
-            else: val="crop"
-        elif cat=="repeat" and "repeat_mode" in corrected_preset: val=corrected_preset["repeat_mode"]
-        else: return cat, None
-        res=train_rl(filename, val, cat, reward=reward)
+        val = _action_for(cat, corrected_preset)
+        if val is None:
+            return cat, None
+        res = train_rl(filename, val, cat, reward=reward)
         return cat, res
     cats=CATEGORIES
     results={}
@@ -295,6 +408,33 @@ def train_parallel_rl(filename, corrected_preset, reward=1):
     return results
 
 AMBIG_GAP = 0.05  # selisih Q top-2 di bawah ini = ambigu
+
+VALID_PATH = BASE / "data" / "validasi.json"  # state -> jumlah validasi manusia
+VALID_MIN_AUTO = 2  # syarat AUTO: divalidasi manusia minimal ini
+
+
+def _load_valid():
+    try:
+        d = json.loads(VALID_PATH.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def catat_validasi(filename):
+    """Catat satu penilaian manusia (Enter/koreksi/adjudikasi)."""
+    state = _key_str(_state_key(filename))
+    try:
+        d = _load_valid()
+        d[state] = int(d.get(state, 0)) + 1
+        VALID_PATH.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"[E023] Validasi gagal dicatat: {e}")
+    return state
+
+
+def validasi_count(filename):
+    return int(_load_valid().get(_key_str(_state_key(filename)), 0))
 
 def state_maturity(filename):
     """Fase 1: (is_new, is_ambig, min_gap) untuk keputusan AUTO."""

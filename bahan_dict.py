@@ -24,14 +24,11 @@ CANONICAL = {
     "rajawali": "Rajawali",
     "pindo": "Pindo",
     "jasmine": "Jasmine",
-    "matte": "Matte",
     "ivory": "Ivory",
-    "art paper": "Art Paper",
-    "art carton": "Art Carton",
-    "british": "British",
-    "hanji": "Hanji",
-    "manila": "Manila",
     "transparant": "Transparant",
+    "hologram": "Hologram",
+    "gold": "Gold",
+    "silver": "Silver",
 }
 
 # kata produk (lolos skip-check, tapi BUKAN bahan untuk guru)
@@ -46,14 +43,22 @@ TYPO_MAP = {
     "vinly": "vinyl",
     "jasmin": "jasmine",
     "concorde": "concord",
-    "mate": "matte", "doff": "matte",
     "trasparant": "transparant", "transparan": "transparant",
     "hps": "hvs", "hfs": "hvs",
     "rajawli": "rajawali", "rajwali": "rajawali",
-    "artpaper": "art paper", "artcarton": "art carton",
 }
 
+FIN_2S = r"(doff|dof|laminasi|laminating|glossy|gloss|matte|hologram|canvas|uv|varnish)\s*2s"
+
 _ALL_FORMS = list(CANONICAL.keys()) + list(TYPO_MAP.keys()) + list(EXTRA_SKIP)
+
+
+def strip_finishing(low):
+    """Buang frasa finishing 'X 2s'. Hologram kondisional (bahan sekaligus)."""
+    t = re.sub(FIN_2S, " ", low)
+    if "hologram" in t and any(k != "hologram" and k in t for k in CANONICAL.keys()):
+        t = re.sub(r"hologram\s*2s", " ", t)
+    return t
 
 
 def fix_typos(text):
@@ -95,7 +100,7 @@ def has_bahan(text):
 
 def guess_bahan(text):
     """Tebak nama bahan kanonis (toleran typo), atau None. Untuk guru/koreksi."""
-    t = fix_typos(text)
+    t = strip_finishing(fix_typos(text).lower())
     low = t.lower()
     m = re.search(r"(ac|ap)\d+\s*gr", low)
     if m:

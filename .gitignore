@@ -17,3 +17,4 @@ rs_sidecar.exe
 bench_rs_tmp*
 qbench.txt
 *.pdb
+data/stats_backup_*.jsonl
