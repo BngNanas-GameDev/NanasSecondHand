@@ -89,6 +89,8 @@ def _fuzzy_word(word):
 def has_bahan(text):
     """True jika ada nama bahan (toleran typo). Untuk skip-check."""
     t = fix_typos(text).lower()
+    if re.search(r"(?<![a-z])(ac|ap)\d+", t):
+        return True
     for key in list(CANONICAL.keys()) + list(EXTRA_SKIP):
         if key in t:
             return True
@@ -102,9 +104,12 @@ def guess_bahan(text):
     """Tebak nama bahan kanonis (toleran typo), atau None. Untuk guru/koreksi."""
     t = strip_finishing(fix_typos(text).lower())
     low = t.lower()
-    m = re.search(r"(ac|ap)\d+\s*gr", low)
+    m = re.search(r"(?<![a-z])(ac|ap)\d+\s*(?:gr)?", low)
     if m:
-        return re.sub(r"\s+", "", m.group(0)).capitalize()
+        s = re.sub(r"\s+", "", m.group(0)).lower()
+        if not s.endswith("gr"):
+            s += "gr"
+        return s[:-2].capitalize() + "gr"
     for key in sorted(CANONICAL.keys(), key=len, reverse=True):
         if key in low:
             return CANONICAL[key]

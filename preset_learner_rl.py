@@ -107,25 +107,48 @@ def _state_key(filename):
 def _key_str(state):
     return "|".join(sorted(state))
 
+_QCACHE = {}
+_QMTIME = {}
+
+
 def _load_q(cat):
     p = DATA_DIR / f"{cat}.json"
+    try:
+        mt = p.stat().st_mtime
+    except OSError:
+        return {}
+    if cat in _QCACHE and _QMTIME.get(cat) == mt:
+        return _QCACHE[cat]
     if p.exists():
-        try: 
-            return json.loads(p.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             raise RLError("E016", f"Q-table corrupt: {cat}.json")
         except Exception as e:
             raise RLError("E016", f"Q-table load gagal: {e}")
-    return {}
+    else:
+        data = {}
+    _QCACHE[cat] = data
+    try:
+        _QMTIME[cat] = p.stat().st_mtime
+    except OSError:
+        pass
+    return data
 
 def _save_q(cat, data):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    p = DATA_DIR / f"{cat}.json"
     try:
-        (DATA_DIR / f"{cat}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     except PermissionError:
         raise RLError("E016", f"Q-table save gagal: permission denied - {cat}.json")
     except Exception as e:
         raise RLError("E016", f"Q-table save gagal: {e}")
+    _QCACHE[cat] = data
+    try:
+        _QMTIME[cat] = p.stat().st_mtime
+    except OSError:
+        pass
 
 def suggest_rl(filename, cat):
     """Pure RL: Q max jika ada, else default. Finishing pakai string crop/bleed."""
@@ -176,8 +199,10 @@ def train_rl(filename, corrected_value, cat, reward=1):
     return {"state": state, "action": action_key, "old_Q": old_q, "new_Q": new_q, "reward": reward}
 
 def _dx_repeat_rule(filename, repeat_val):
-    """Aturan: @xKecil → collate-cut, @xBESAR → repeat, + BOOKLET/Staples tengah → booklet varian"""
-    is_booklet = "booklet" in filename.lower() or "staples tengah" in filename.lower() or "staples" in filename.lower()
+    """Aturan: @xKecil → collate-cut, @xBESAR → repeat, + BOOKLET/Staples tengah → booklet varian.
+    'staples' saja (tanpa 'tengah') BUKAN booklet."""
+    _low = filename.lower()
+    is_booklet = "booklet" in _low or "staples tengah" in _low or "staple tengah" in _low
     if re.search(r"1d\d+.*@\s*\d+\s*besar", filename, re.I):
         return "repeat"
     m = re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, re.I)
@@ -211,8 +236,8 @@ def suggest_parallel_rl(filename):
         if cat=="finishing":
             preset.update(_finishing_to_preset(v))
         elif cat=="duplex":
-            # aturan dr: data sama / balak balik sama
-            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower():
+            # aturan dr: data sama / bolak balik sama / gambar sama
+            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower() or "gambar sama" in filename.lower():
                 preset["duplex"]="dr"
             else:
                 preset["duplex"]=v
@@ -271,7 +296,7 @@ def guru_preset_for(filename):
             preset["repeat"] = "repeat"
         elif m:
             preset["repeat"] = f"collate-cut({m.group(1)})" if m.group(1) != "1" else "collate-cut"
-        elif "booklet" in filename.lower():
+        elif "booklet" in filename.lower() or "staples tengah" in filename.lower() or "staple tengah" in filename.lower():
             preset["repeat"] = "booklet"
         else:
             preset["repeat"] = "repeat"

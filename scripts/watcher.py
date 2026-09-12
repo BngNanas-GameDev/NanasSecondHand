@@ -32,11 +32,12 @@ except ImportError as e:
     print(f"[E005] Gagal load preset_learner_rl: {e}")
     rl = None
 try:
-    from llm_zen import llm_teacher_preset, llm_parse_filename
+    from llm_zen import llm_teacher_preset, llm_parse_filename, ringkas
 except ImportError as e:
     print(f"[E006] Gagal load llm_zen: {e}")
     llm_teacher_preset = None
     llm_parse_filename = lambda x: x
+    ringkas = lambda x: x
 try:
     from bahan_dict import has_bahan, guess_bahan
 except ImportError as e:
@@ -138,13 +139,17 @@ def scan_and_impose():
         print("\n" + "="*60)
         print(f"📄 File Masuk: {src.name}")
 
-        # 1. LLM parse nama file → baca enak
+        # 1. LLM parse nama file → baca enak + format ringkas guru
         try:
             parsed = llm_parse_filename(src.name)
             if parsed:
                 print(f"[LLM Parse] {parsed}")
         except Exception as e:
             err("E021", f"LLM parse gagal: {e}")
+        try:
+            print(f"[RINGKAS] {ringkas(src.name)}")
+        except Exception:
+            pass
 
         # 2. RL jawab preset dari Q-table
         try:
@@ -239,7 +244,7 @@ def scan_and_impose():
                     if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
-                    if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
+                    if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or "gambar sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
                     elif "2s" in low or "dua muka" in low or low.strip() in ("2","duplex","bolak","true"): corrected["duplex"]="2s"
                     elif re.search(r"\b1s\b", low) or "satu muka" in low or "simplex" in low or low.strip() in ("1","false"): corrected["duplex"]="1s"
                     if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans

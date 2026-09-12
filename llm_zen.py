@@ -30,13 +30,54 @@ def parse_duplex(filename):
         return "1s"
     if _b == "Kromo" and ("stiker" in low or "sticker" in low):
         return "1s"
-    if "data sama" in low or "bolak balik sama" in low:
+    if "data sama" in low or "bolak balik sama" in low or "gambar sama" in low:
         return "dr"
     tmp = re.sub(r"(doff|dof|laminasi|laminating|glossy|gloss|matte|hologram|canvas|uv|varnish)\s*2s", " ", low)
     if ("2s" in tmp or "bolak" in low or "dua muka" in low
             or "depan belakang" in low or "2 sisi" in low):
         return "2s"
     return "1s"
+
+
+def skip_reason(filename):
+    """Cermin aturan skip watcher. Return alasan atau None jika lolos."""
+    import re as _re
+    low = filename.lower()
+    if not low.endswith(".pdf"):
+        return "bukan PDF"
+    if "kisscut" in low or "diecut" in low:
+        return "kisscut/diecut"
+    if "hardcover" in low:
+        return "hardcover"
+    if "map" in low:
+        return "map"
+    try:
+        from bahan_dict import has_bahan as _hb
+        if not _hb(filename):
+            return "tidak ada nama bahan"
+    except ImportError:
+        pass
+    if "master" in low or "kalkir" in low:
+        return "master/kalkir"
+    if not _re.search(r"1d\d+", low):
+        return "tidak ada dx"
+    if "test" in low or "tes" in low:
+        for kw in ("spiral kiri", "spiral atas", "spiral kanan", "staples punggung",
+                   "lem panas", "staples tengah", "booklet"):
+            if kw in low:
+                return f"test/tes + {kw}"
+    return None
+
+
+def ringkas(filename):
+    """Format bersih: bahan | duplex | dx | finishing | repeat. '-' jika tak ada."""
+    p = llm_teacher_preset(filename)
+    fin = p.get("finishing", "-")
+    if fin == "bleed":
+        fin = "bleed 2mm"
+    return " | ".join([str(p.get("bahan") or "-"), str(p.get("duplex") or "-"),
+                       str(p.get("dx") or "-"), str(fin),
+                       str(p.get("repeat") or "-")])
 
 
 def llm_teacher_preset(filename):
@@ -55,7 +96,10 @@ def llm_teacher_preset(filename):
     preset["finishing"]="crop"
     _flow = _re.sub(r"bled+", "bleed", filename.lower())  # toleran typo Bledd
     if "potong bleed" in _flow or "bleed 2mm" in _flow: preset["finishing"]="bleed"
-    is_booklet = "booklet" in filename.lower() or "staples" in filename.lower()
+    low = filename.lower()
+    # booklet hanya jika kata "booklet" ATAU frasa "staples tengah" utuh.
+    # "staples" saja (mis. staples punggung) BUKAN booklet.
+    is_booklet = "booklet" in low or "staples tengah" in low or "staple tengah" in low
     m=_re.search(r"1d\d+.*@\s*(\d+)\s*kecil", filename, _re.I)
     if _re.search(r"1d\d+.*@\s*\d+\s*besar", filename, _re.I):
         preset["repeat"]="repeat"

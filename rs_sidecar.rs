@@ -275,21 +275,20 @@ fn guess_bahan(low: &str) -> Option<String> {
     // (ac|ap)\d+\s*gr
     let mut i = 0;
     while i + 1 < b.len() {
-        if (b[i] == b'a') && (b[i + 1] == b'c' || b[i + 1] == b'p') {
+        // batas kata: bukan lanjutan huruf (tahap2 != ap2)
+        if (b[i] == b'a')
+            && (b[i + 1] == b'c' || b[i + 1] == b'p')
+            && (i == 0 || !is_alpha(b[i - 1]))
+        {
             let mut j = i + 2;
             while j < b.len() && is_digit(b[j]) {
                 j += 1;
             }
             if j > i + 2 {
-                let mut k = j;
-                while k < b.len() && b[k] == b' ' {
-                    k += 1;
-                }
-                if t[k..].starts_with("gr") {
-                    let mut s = format!("{}gr", &t[i..j]);
-                    s[0..1].make_ascii_uppercase();
-                    return Some(s);
-                }
+                // 'gr' opsional: AC260 -> Ac260gr
+                let mut s = format!("{}gr", &t[i..j]);
+                s[0..1].make_ascii_uppercase();
+                return Some(s);
             }
             i = j;
         } else {
@@ -317,7 +316,7 @@ fn parse_duplex(low: &str) -> String {
             return "1s".to_string();
         }
     }
-    if low.contains("data sama") || low.contains("bolak balik sama") {
+    if low.contains("data sama") || low.contains("bolak balik sama") || low.contains("gambar sama") {
         return "dr".to_string();
     }
     let tmp = strip_word_2s(&strip_fin_2s(&format!(" {} ", low)), "hologram");
@@ -430,7 +429,8 @@ fn parse_dx_low(low: &str) -> Option<String> {
 }
 
 fn parse_repeat(low: &str) -> String {
-    let is_booklet = low.contains("booklet") || low.contains("staples");
+    // booklet hanya jika kata "booklet" ATAU frasa "staples tengah" utuh ("staples" saja bukan booklet)
+    let is_booklet = low.contains("booklet") || low.contains("staples tengah") || low.contains("staple tengah");
     // mirror re.search greedy: anchor 1d paling kiri, '@' valid TERAKHIR
     let (last_kecil, any_besar) = repeat_parts(low);
     // @besar dulu (mirror llm_zen)

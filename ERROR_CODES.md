@@ -26,6 +26,9 @@
 | E020 | llm_zen.py | LLM API call gagal (PENSIUN v3.0) | - |
 | E021 | llm_zen.py | Response parse error (masih dipakai: parse filename gagal) | LOW |
 | E022 | llm_zen.py | requests module tidak ada (PENSIUN v3.0: requests dibuang) | - |
+| E030 | NSH Lite lite.py | File locked/dibuka (percobaan impose, cooldown 5s) | MEDIUM |
+| E031 | NSH Lite lite.py | Tidak bisa ditarik — 3x gagal locked → .txt + skip permanen | HIGH |
+| E032 | NSH Lite lite.py | Gagal impose 3x (bukan locked) → .txt + skip permanen | HIGH |
 
 ---
 
@@ -327,6 +330,30 @@ cat ~/.local/share/opencode/auth.json
 ```bash
 pip install requests
 ```
+
+---
+
+### E030: File locked/dibuka (percobaan)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E030] File dibuka/locked oleh program lain (n/3)`  
+**Cause:** PDF sedang dibuka di Acrobat/Reader, permission denied  
+**Behavior:** cooldown 5 detik (tidak spam log), dihitung sebagai 1 gagal. Tetap di-retry sampai 3x.
+
+---
+
+### E031: Tidak bisa ditarik (3x locked)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E031] tidak bisa ditarik (nama.pdf)`  
+**Cause:** 3x gagal E030 (tiap gagal jeda ≥5 detik)  
+**Solution:** File di-skip permanen, dibuat `uda/<nama>_ERROR.txt` berisi `tidak bisa ditarik (nama.pdf) [E031] ...`. Tutup file di program lain lalu hapus .txt dan pindahkan ulang PDF ke `input/` untuk retry.
+
+---
+
+### E032: Gagal impose 3x (bukan locked)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E032] gagal impose (nama.pdf)`  
+**Cause:** 3x gagal impose selain locked (E008/E010/PDF corrupt)  
+**Solution:** Sama seperti E031 — cek `uda/<nama>_ERROR.txt` untuk sebab, perbaiki PDF, retry manual.
 
 ---
 

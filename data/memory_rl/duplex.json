@@ -159,26 +159,26 @@
     "1s": 0.478
   },
   "1d4|kecil|kromo|stiker": {
-    "1s": 0.667
+    "1s": 0.72
   },
   "1d25|ac230gr|belakang|kartunama|tekan": {
     "2s": 0.56
   },
   "1d2|ac230gr|kecil|potong": {
-    "1s": 0.56
+    "1s": 0.72
   },
   "1d2|ac260gr|kecil|potong": {
-    "1s": 0.77,
-    "2s": 0.366
+    "1s": 0.741,
+    "2s": 0.106
   },
   "1-320x1-482|1d6|kecil|kromo|tes": {
     "2s": 0.24
   },
   "1d25|ac230gr|kecil|manual": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d16|ac260gr|kecil|manual": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d2|kecil|kromo|stiker": {
     "1s": 0.727
@@ -202,16 +202,16 @@
     "1s": 0.478
   },
   "1d4|ac260gr|kecil|total": {
-    "1s": 0.318
+    "1s": 0.587
   },
   "1d12|ac260gr|kecil|potong": {
     "1s": 0.478
   },
   "1d16|ac260gr|kecil|potong": {
-    "1s": 0.552
+    "1s": 0.667
   },
   "1d18|ac260gr|kecil|potong": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d2|hvs100gr|kecil|potong": {
     "1s": 0.641
@@ -279,7 +279,7 @@
     "1s": 0.478
   },
   "1d24|kecil|kromo|stiker": {
-    "1s": 0.641
+    "1s": 0.697
   },
   "1d96|kecil|stiker|transparant": {
     "1s": 0.478
@@ -297,10 +297,10 @@
     "1s": 0.478
   },
   "1d4|4kecil|ac260gr|manualcutter": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d4|ac230gr|kecil|potong": {
-    "2s": 0.478
+    "2s": 0.641
   },
   "1d9|ac230gr|kecil|potong": {
     "2s": 0.478
@@ -309,8 +309,8 @@
     "1s": 0.478
   },
   "1d9|ac260gr|kecil|manual": {
-    "2s": 0.24,
-    "1s": 0.388
+    "2s": 0.018,
+    "1s": 0.653
   },
   "1d9|ac260gr|belakang|kecil": {
     "2s": 0.478
@@ -331,10 +331,11 @@
     "1s": 0.478
   },
   "1d2|ac260gr|kecil|test": {
-    "1s": 0.478
+    "1s": 0.185,
+    "2s": 0.643
   },
   "1d12|kecil|kromo|stiker": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d2|ac230gr|insix|solihin": {
     "1s": 0.478
@@ -370,13 +371,14 @@
     "1s": 0.478
   },
   "1d4|ac260gr|kecil|potong": {
-    "1s": 0.478
+    "1s": 0.299,
+    "2s": 0.725
   },
   "1d2|ac310gr|kecil|potong": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d2|ac230gr|kecil|manual": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d25|ac260gr|jam|ktn": {
     "1s": 0.478
@@ -403,7 +405,7 @@
     "1s": 0.478
   },
   "1d15|ac260gr|kecil|manual": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d4|7cm|card18x12|pindo": {
     "1s": 0.641
@@ -482,7 +484,7 @@
     "1s": 0.478
   },
   "1d4|ac230gr|kecil|manual": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d2|ac230gr|glossy|kecil": {
     "2s": 0.478
@@ -494,13 +496,13 @@
     "2s": 0.478
   },
   "1d9|kecil|stiker|vinyl": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d12|stiker|test|vyinil": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d18|cetak|rajawali|tekstur": {
-    "1s": 0.478
+    "1s": 0.641
   },
   "1d16|matte|stiker|vinyl": {
     "1s": 0.478
@@ -619,5 +621,371 @@
   },
   "1d4|ap120gr|kecil": {
     "2s": 0.478
+  },
+  "1d12|aji|ayu|stiker|test": {
+    "1s": 0.478
+  },
+  "1d4|jam|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d9|jam|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d18|clickproducti|kromo|new|stiker": {
+    "1s": 0.478
+  },
+  "1d2|ap150gr|brosur|eric": {
+    "2s": 0.478
+  },
+  "1d18|ac260gr|depan|kecil": {
+    "2s": 0.641
+  },
+  "1d9|ac260gr|kartu|kecil": {
+    "2s": 0.478
+  },
+  "1d18|ac260gr|kecil|total": {
+    "2s": 0.478
+  },
+  "1d6|ap150gr|brosur10x21cm|jam": {
+    "1s": 0.478
+  },
+  "1d20|kecil|kertas|kromo": {
+    "2s": 0.641
+  },
+  "1d8|ap150gr|kecil|tes": {
+    "1s": 0.478
+  },
+  "1d4|hvs|kecil|stiker": {
+    "1s": 0.478
+  },
+  "1d18|bagian|kartu|rajawali|ucapan": {
+    "1s": 0.478
+  },
+  "1d12|bagian|kartu|rajawali|ucapan": {
+    "1s": 0.641
+  },
+  "1d4|3store01|ap120gr|kecil": {
+    "2s": 0.478
+  },
+  "1d21|3store01|stiker|vinyl": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|ktn|test": {
+    "2s": 0.641
+  },
+  "1d15|kecil|kromo|stiker": {
+    "1s": 0.641
+  },
+  "1d20|kecil|potong|stikerkromo": {
+    "1s": 0.641
+  },
+  "1d10|ap150gr|kecil|kupon": {
+    "1s": 0.478
+  },
+  "1d16|ap150gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d14|cetak|clickproducti|stiker|ulang": {
+    "1s": 0.478
+  },
+  "1d54|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "100gr|1d2|hvs|kecil": {
+    "1s": 0.478
+  },
+  "1d4|besar|kecil|stikervinyl": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|kartunama|kecil": {
+    "2s": 0.724,
+    "1s": 0.3
+  },
+  "1d4|ac260gr|kecil|teddy": {
+    "1s": 0.478
+  },
+  "1d25|ac230gr|kecil|ktn": {
+    "2s": 0.478
+  },
+  "1d24|kecil|stiker|vinyl": {
+    "1s": 0.697
+  },
+  "1d16|besar|kecil|stikerhvs": {
+    "1s": 0.641
+  },
+  "1d27|kecil|potong|stikervinyl": {
+    "1s": 0.478
+  },
+  "1d4|ap150gr|besar|kecil": {
+    "1s": 0.641
+  },
+  "1d2|ap150gr|kecil|potong": {
+    "2s": 0.478
+  },
+  "1d56|kecil|manual|stikerkromo": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|kecil|ktn": {
+    "1s": 0.735,
+    "2s": 0.339
+  },
+  "1d12|ap150gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d12|ac230gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d2|buku|ganti|isi|menu": {
+    "2s": 0.478
+  },
+  "1d18|kecil|pindo|segera": {
+    "1s": 0.478
+  },
+  "1d8|ap150gr|besar|kecil": {
+    "1s": 0.697
+  },
+  "1d2|ac260gr|isi|kecil": {
+    "2s": 0.641
+  },
+  "1d8|ap190gr|belakang|voucher": {
+    "2s": 0.478
+  },
+  "1d8|ap190gr|depan|voucher": {
+    "2s": 0.478
+  },
+  "1d8|ap190gr|kecil|voucher": {
+    "2s": 0.478
+  },
+  "1d2|ap190gr|irawan|segera|uk23x28cm": {
+    "1s": 0.478
+  },
+  "1d2|amplop|jasmine|kertas|segera": {
+    "1s": 0.478
+  },
+  "1d4|jasmine|kertas|sambungan|segera": {
+    "1s": 0.478
+  },
+  "1d4|isi|jasmine|kertas|segera": {
+    "1s": 0.478
+  },
+  "1d2|ac230gr|segera|uk23x28cm": {
+    "1s": 0.478
+  },
+  "1d25|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d25|kecil|pindo|total": {
+    "1s": 0.641
+  },
+  "1d4|ac260gr|buku|jam": {
+    "2s": 0.697
+  },
+  "1d9|kecil|pindo|potong": {
+    "2s": 0.478
+  },
+  "1d2|ac260gr|kecil|press": {
+    "1s": 0.697
+  },
+  "1d24|240kecil|ac260gr|potong": {
+    "1s": 0.478
+  },
+  "1d9|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d4|ac260gr|kecil|test": {
+    "2s": 0.478
+  },
+  "1d2|ambil|jam|semua|test": {
+    "2s": 0.478
+  },
+  "1d16|ac260gr|kecil|manualcutter": {
+    "2s": 0.478
+  },
+  "1d25|ac230gr|kartunama|kecil": {
+    "1s": 0.478
+  },
+  "1d9|kecil|pindo|test": {
+    "2s": 0.478
+  },
+  "1d3|kecil|stiker|vinyl": {
+    "1s": 0.478
+  },
+  "1d9|ac260gr|besar|kecil": {
+    "1s": 0.478
+  },
+  "1d2|ac260gr|kecil|manual": {
+    "1s": 0.717
+  },
+  "1d2|ac190gr|kecil|manual": {
+    "1s": 0.478
+  },
+  "1d6|kecil|kromo|stiker": {
+    "1s": 0.641
+  },
+  "1d2|ac260gr|glossy|kecil": {
+    "1s": 0.352,
+    "2s": 0.76
+  },
+  "1d9|classy|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d72|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d54|hvs|stiker|test": {
+    "1s": 0.478
+  },
+  "1d12|48kecil|potong|stikervinyl": {
+    "1s": 0.478
+  },
+  "100kecil|1d20|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d10|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d50|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "170kecil|1d10|ac230gr|potong": {
+    "1s": 0.478
+  },
+  "1d32|kecil|manual|pindo": {
+    "1s": 0.478
+  },
+  "1d10|kecil|kertas|kromo": {
+    "2s": 0.478
+  },
+  "1d21|kecil|stiker|vinyl": {
+    "1s": 0.641
+  },
+  "1d2|amplop14x20cm|jasmine|kertas|segera": {
+    "1s": 0.641
+  },
+  "1d4|5cm|5x19|ac260gr|segera": {
+    "1s": 0.478
+  },
+  "1d4|3x13|5cm|ac260gr|segera": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|kecil|manual": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d25|ac230gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d4|ac260gr|besar|kecil": {
+    "1s": 0.478
+  },
+  "1d2|kecil|manual|pindo": {
+    "1s": 0.478
+  },
+  "1d4|ac310gr|kecil|potong": {
+    "2s": 0.478
+  },
+  "1d10|ac260gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d8|ac260gr|kecil|potong": {
+    "1s": 0.478
+  },
+  "1d64|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d4|ac310gr|sertifikat|sisidepan": {
+    "2s": 0.478
+  },
+  "1d4|ac310gr|kecil|sertifikat": {
+    "2s": 0.478
+  },
+  "1d4|ac310gr|sertifikat|sisibelakang": {
+    "2s": 0.478
+  },
+  "1d8|kecil|kromo|stiker": {
+    "1s": 0.478
+  },
+  "1d24|kecil|potong|stikervinyl": {
+    "1s": 0.478
+  },
+  "1d16|ap120gr|jam|voucher": {
+    "1s": 0.478
+  },
+  "1d24|bantu|jam|stiker|vinyl": {
+    "1s": 0.478
+  },
+  "1d25|ac310gr|kecil|ktn": {
+    "1s": 0.478
+  },
+  "1d2|ac310gr|buku|rio01new|tes": {
+    "2s": 0.478
+  },
+  "1d25|cerianto|hvs|serasi|stiker": {
+    "1s": 0.478
+  },
+  "1d32|kromo|stiker|tes": {
+    "1s": 0.478
+  },
+  "1d25|ac260gr|bantumalamini|kecil": {
+    "1s": 0.478
+  },
+  "1d18|ac310gr|kecil|manual": {
+    "1s": 0.717
+  },
+  "1d2|kecil|stiker|vinyl": {
+    "1s": 0.478
+  },
+  "1d14|kecil|stiker|vinyl": {
+    "1s": 0.478
+  },
+  "1d4|ac260gr|jam|kartuidulfitri18x12cm": {
+    "2s": 0.478
+  },
+  "1d4|kromo|stiker|tes": {
+    "1s": 0.56
+  },
+  "1d2|ap150gr|kecil|test": {
+    "2s": 0.478
+  },
+  "1d4|5cm|5x13|ac260gr|segera": {
+    "1s": 0.478
+  },
+  "1d4|5x13|jasmine|kertas|segera": {
+    "1s": 0.478
+  },
+  "1d4|5x13|concord|kertas|segera": {
+    "1s": 0.478
+  },
+  "1d4|5cm|5x13|pindo|segera": {
+    "1s": 0.478
+  },
+  "1d4|5x13|kertas|rajawali|segera": {
+    "1s": 0.478
+  },
+  "1d16|ac230gr|kecil|manual": {
+    "1s": 0.478
+  },
+  "1d16|1kecil|ac230gr|manual": {
+    "1s": 0.478
+  },
+  "1d16|kecil|manualcutter|stikerkromo": {
+    "1s": 0.478
+  },
+  "1d9|ayani|orchardz|pindo": {
+    "1s": 0.478
+  },
+  "1d16|bagian|bertekstur|gambar|rajawali": {
+    "1s": 0.478
+  },
+  "1d25|ac230gr|kecil|test": {
+    "2s": 0.478
+  },
+  "1d16|ac260gr|ade|ryoupastries": {
+    "1s": 0.478
+  },
+  "1d20|ap150gr|gelang|tiket": {
+    "1s": 0.723
   }
 }
