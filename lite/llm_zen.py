@@ -30,7 +30,7 @@ def parse_duplex(filename):
         return "1s"
     if _b == "Kromo" and ("stiker" in low or "sticker" in low):
         return "1s"
-    if "data sama" in low or "bolak balik sama" in low or "gambar sama" in low:
+    if "data sama" in low or "datasama" in low or "bolak balik sama" in low or "gambar sama" in low:
         return "dr"
     tmp = re.sub(r"(doff|dof|laminasi|laminating|glossy|gloss|matte|hologram|canvas|uv|varnish)\s*2s", " ", low)
     if ("2s" in tmp or "bolak" in low or "dua muka" in low
