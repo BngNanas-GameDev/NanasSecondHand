@@ -316,7 +316,7 @@ fn parse_duplex(low: &str) -> String {
             return "1s".to_string();
         }
     }
-    if low.contains("data sama") || low.contains("bolak balik sama") || low.contains("gambar sama") {
+    if low.contains("data sama") || low.contains("datasama") || low.contains("bolak balik sama") || low.contains("gambar sama") {
         return "dr".to_string();
     }
     let tmp = strip_word_2s(&strip_fin_2s(&format!(" {} ", low)), "hologram");

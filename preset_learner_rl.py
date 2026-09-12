@@ -236,8 +236,8 @@ def suggest_parallel_rl(filename):
         if cat=="finishing":
             preset.update(_finishing_to_preset(v))
         elif cat=="duplex":
-            # aturan dr: data sama / bolak balik sama / gambar sama
-            if "data sama" in filename.lower() or "bolak balik sama" in filename.lower() or "gambar sama" in filename.lower():
+            # aturan dr: data sama / datasama / bolak balik sama / gambar sama
+            if "data sama" in filename.lower() or "datasama" in filename.lower() or "bolak balik sama" in filename.lower() or "gambar sama" in filename.lower():
                 preset["duplex"]="dr"
             else:
                 preset["duplex"]=v

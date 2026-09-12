@@ -244,7 +244,7 @@ def scan_and_impose():
                     if "bleed" in low: corrected["finishing"]="bleed"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     elif "crop" in low: corrected["finishing"]="crop"; [corrected.pop(k,None) for k in ["mode","bleed_mm","inner_crop","mark_len_mm","bleed_on"]]
                     if "dx" in low: corrected["dx"]=ans.split("dx")[-1].strip()
-                    if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or "gambar sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
+                    if re.search(r"\bdr\b", low) or "duplex repeat" in low or "bolak balik sama" in low or "data sama" in low or "datasama" in low or "gambar sama" in low or low.strip()=="dr": corrected["duplex"]="dr"
                     elif "2s" in low or "dua muka" in low or low.strip() in ("2","duplex","bolak","true"): corrected["duplex"]="2s"
                     elif re.search(r"\b1s\b", low) or "satu muka" in low or "simplex" in low or low.strip() in ("1","false"): corrected["duplex"]="1s"
                     if "collate" in low or "booklet" in low: corrected["repeat_mode"]=ans.split()[-1] if "collate" in low else ans
