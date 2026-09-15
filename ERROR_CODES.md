@@ -29,6 +29,7 @@
 | E030 | NSH Lite lite.py | File locked/dibuka (percobaan impose, cooldown 5s) | MEDIUM |
 | E031 | NSH Lite lite.py | Tidak bisa ditarik — 3x gagal locked → .txt + skip permanen | HIGH |
 | E032 | NSH Lite lite.py | Gagal impose 3x (bukan locked) → .txt + skip permanen | HIGH |
+| E034 | NSH Lite lite.py | Duplikat terdeteksi (file=output) → .txt marker, TETAP impose | LOW |
 
 ---
 
@@ -354,6 +355,14 @@ pip install requests
 **Error:** `[E032] gagal impose (nama.pdf)`  
 **Cause:** 3x gagal impose selain locked (E008/E010/PDF corrupt)  
 **Solution:** Sama seperti E031 — cek `uda/<nama>_ERROR.txt` untuk sebab, perbaiki PDF, retry manual.
+
+---
+
+### E034: Duplikat terdeteksi
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E034] Duplikat Terdeteksi (namaPelanggan)`  
+**Cause:** File di input sudah ada di output (impose selesai). Masuk 2x.  
+**Behavior:** **Tetap di-impose** (tidak skip), tapi tulis `.txt` marker di folder input.
 
 ---
 
