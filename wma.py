@@ -181,9 +181,14 @@ def ask_key():
             return None
 
 
+_UNMATCHED_QUIET = {}  # nama file -> timestamp log terakhir
+UNMATCHED_QUIET_S = 120
+
+
 def scan_new(folders):
     """File PDF yang match dashboard & belum terisi mesin+operator.
-    Return [(nama_file, label_folder)], unmatched hanya dilog."""
+    Belum match (dashboard belum mencatat) TIDAK dibuang — dicoba lagi
+    tiap siklus, dilog max 1x/120 detik. Return [(nama_file, label)]."""
     batch, seen = [], set()
     for label, folder in folders.items():
         try:
@@ -196,7 +201,11 @@ def scan_new(folders):
             seen.add(n.lower())
             fid, row = find_file_id(n)
             if not fid:
-                print(f"  [?] {n[:55]:55s} tidak ada di dashboard")
+                import time as _t
+                now = _t.time()
+                if now - _UNMATCHED_QUIET.get(n.lower(), 0) >= UNMATCHED_QUIET_S:
+                    _UNMATCHED_QUIET[n.lower()] = now
+                    print(f"  [?] {n[:55]:55s} belum ada di dashboard, tunggu...")
                 continue
             if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
                 continue  # sudah terisi
@@ -219,7 +228,7 @@ def watch():
         threading.Thread(target=_dir_watcher, args=(Path(folder),), daemon=True).start()
     try:
         while True:
-            os.system("cls")
+            print(f"  ----- {datetime.datetime.now().strftime('%H:%M:%S')} -----")
             print("  ===== WMA — Watcher Module Auto =====")
             show_counts()
             batch = scan_new(folders)
@@ -228,8 +237,7 @@ def watch():
                 for n, label in batch:
                     print(f"    [{label}] {n[:70]}")
                 op = ask_key()
-                os.system("cls")  # CLS tepat setelah operator dipilih
-                print("  ===== WMA — Watcher Module Auto =====")
+                print("  ===== WMA — hasil =====")
                 if op:
                     print(f"  Operator: {op}")
                 results = []
