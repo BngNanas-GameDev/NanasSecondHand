@@ -283,7 +283,7 @@ def scan_new(folders):
     for key in list(_PENDING):
         e = _PENDING[key]
         if now - e["seen"] > PENDING_TTL_S:
-            del _PENDING[key]
+            _PENDING.pop(key, None)
             _MATCH_FUTS.pop(key, None)
             continue
         fut = _MATCH_FUTS.get(key)
@@ -309,10 +309,10 @@ def scan_new(folders):
                 continue
             del _MATCH_FUTS[key]
         if not fid:
-            del _PENDING[key]  # tidak ada di dashboard, bukan urusan WMA
+            _PENDING.pop(key, None)  # tidak ada di dashboard, bukan urusan WMA
             continue
         if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
-            del _PENDING[key]  # sudah terisi, selesai
+            _PENDING.pop(key, None)  # sudah terisi, selesai
             del _PENDING[key]
             continue
         batch.append((e["name"], e["label"]))
