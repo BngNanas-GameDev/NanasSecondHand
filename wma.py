@@ -20,6 +20,10 @@ CFG_PATH = BASE / "wma.json"
 DASH_URL = "http://192.168.5.54:5000"
 OPERATORS = ("Nanas", "Eric", "Rahmadi")  # ejaan persis dashboard
 OPERATOR_KEYS = {"1": 0, "2": 1, "3": 2}
+WMA_VERSION = "19d"
+
+_PENDING = {}  # nama-lower -> {name, label, seen} (tetap dicocokkan walau file pergi)
+PENDING_TTL_S = 48 * 3600
 
 
 def load_cfg():
@@ -204,15 +208,19 @@ def ask_key():
             return None
 
 
+import concurrent.futures as _cf
+
+_MATCH_POOL = _cf.ThreadPoolExecutor(max_workers=4, thread_name_prefix="wma-match")
+_MATCH_FUTS = {}  # nama-lower -> Future[(fid, row)]
 _UNMATCHED_QUIET = {}  # nama file -> timestamp log terakhir
 UNMATCHED_QUIET_S = 120
 
 
 def scan_new(folders):
-    """File PDF yang match dashboard & belum terisi mesin+operator.
-    Belum match (dashboard belum mencatat) TIDAK dibuang — dicoba lagi
-    tiap siklus, dilog max 1x/120 detik. Return [(nama_file, label)]."""
+    """Discovery sinkron (cepat): kumpulkan nama PDF ke _PENDING.
+    Pencocokan dashboard ASINKRON via pump_matches. Return [(nama, label)]."""
     batch, seen = [], set()
+    now = time.time()
     for label, folder in folders.items():
         try:
             names = os.listdir(folder)
@@ -222,17 +230,45 @@ def scan_new(folders):
             if not n.lower().endswith(".pdf") or n.lower() in seen:
                 continue
             seen.add(n.lower())
-            fid, row = find_file_id(n)
-            if not fid:
-                now = time.time()
-                if now - _UNMATCHED_QUIET.get(n.lower(), 0) >= UNMATCHED_QUIET_S:
-                    _UNMATCHED_QUIET[n.lower()] = now
-                    print(f"  [?] {n[:55]:55s} belum ada di dashboard, tunggu...")
-                continue
-            if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
-                continue  # sudah terisi
-            batch.append((n, label))
+            key = n.lower()
+            if key not in _PENDING:
+                _PENDING[key] = {"name": n, "label": label, "seen": now}
+    # kumpulkan hasil pencocokan asinkron yang sudah selesai
+    for key in list(_PENDING):
+        e = _PENDING[key]
+        if now - e["seen"] > PENDING_TTL_S:
+            del _PENDING[key]
+            _MATCH_FUTS.pop(key, None)
+            continue
+        fut = _MATCH_FUTS.get(key)
+        if fut is None:
+            _MATCH_FUTS[key] = _MATCH_POOL.submit(_match_one, key, e["name"])
+            continue
+        if not fut.done():
+            continue
+        del _MATCH_FUTS[key]
+        try:
+            fid, row = fut.result()
+        except Exception:
+            continue
+        if not fid:
+            if now - _UNMATCHED_QUIET.get(key, 0) >= UNMATCHED_QUIET_S:
+                _UNMATCHED_QUIET[key] = now
+                print(f"  [?] {e['name'][:55]:55s} belum ada di dashboard, tunggu...")
+            continue
+        if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
+            del _PENDING[key]  # sudah terisi (mis. manual di dashboard)
+            continue
+        batch.append((e["name"], e["label"]))
     return batch
+
+
+def _match_one(key, name):
+    """Satu pencocokan dashboard (jalan di thread latar)."""
+    try:
+        return find_file_id(name)
+    except Exception as e:
+        return None, str(e)
 
 
 def show_counts(counts=None):
@@ -288,6 +324,9 @@ def watch():
                             m = kon
                         ok, info = report(n, m, op)
                         results.append((n, m, op, ok, info))
+                        if ok:
+                            _PENDING.pop(n.lower(), None)
+                            _MATCH_FUTS.pop(n.lower(), None)
                 else:
                     print("  batch dilewati.")
                 last = show_counts()
