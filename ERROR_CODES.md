@@ -26,6 +26,20 @@
 | E020 | llm_zen.py | LLM API call gagal (PENSIUN v3.0) | - |
 | E021 | llm_zen.py | Response parse error (masih dipakai: parse filename gagal) | LOW |
 | E022 | llm_zen.py | requests module tidak ada (PENSIUN v3.0: requests dibuang) | - |
+| E030 | NSH Lite lite.py | File locked/dibuka (percobaan impose, cooldown 5s) | MEDIUM |
+| E031 | NSH Lite lite.py | Tidak bisa ditarik — 3x gagal locked → .txt + skip permanen | HIGH |
+| E032 | NSH Lite lite.py | Gagal impose 3x (bukan locked) → .txt + skip permanen | HIGH |
+| E034 | NSH Lite lite.py | Duplikat terdeteksi (file=output) → .txt marker, TETAP impose | LOW |
+| E035 | NSH Lite lite.py | Ukuran halaman beda → .txt + skip permanen | MEDIUM |
+| KMA-E01 | KMA route.py | Printer 10.157 & 10.158 mati (fatal, batal jalan) | CRITICAL |
+| KMA-E02 | KMA route.py | Folder INPUT hilang/tak terjangkau | HIGH |
+| KMA-E03 | KMA route.py | Folder RETURN tak bisa dibuat/ditulis | HIGH |
+| KMA-E04 | KMA route.py | Folder UDA tak bisa dibuat/ditulis | HIGH |
+| KMA-E05 | KMA route.py | COPY ke hot folder gagal — file tetap di INPUT | HIGH |
+| KMA-E06 | KMA route.py | Bahan tak dikenal/tanpa folder → RETURN | MEDIUM |
+| KMA-E07 | KMA route.py | Tanpa folder sisi itu (mis. stiker 2S) → RETURN | MEDIUM |
+| KMA-E08 | KMA route.py | Arsip UDA gagal setelah COPY sukses — file tetap di INPUT | HIGH |
+| KMA-E09 | KMA route.py | Done→Uda gagal | MEDIUM |
 
 ---
 
@@ -327,6 +341,96 @@ cat ~/.local/share/opencode/auth.json
 ```bash
 pip install requests
 ```
+
+---
+
+### E030: File locked/dibuka (percobaan)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E030] File dibuka/locked oleh program lain (n/3)`  
+**Cause:** PDF sedang dibuka di Acrobat/Reader, permission denied  
+**Behavior:** cooldown 5 detik (tidak spam log), dihitung sebagai 1 gagal. Tetap di-retry sampai 3x.
+
+---
+
+### E031: Tidak bisa ditarik (3x locked)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E031] tidak bisa ditarik (nama.pdf)`  
+**Cause:** 3x gagal E030 (tiap gagal jeda ≥5 detik)  
+**Solution:** File di-skip permanen, dibuat `uda/<nama>_ERROR.txt` berisi `tidak bisa ditarik (nama.pdf) [E031] ...`. Tutup file di program lain lalu hapus .txt dan pindahkan ulang PDF ke `input/` untuk retry.
+
+---
+
+### E032: Gagal impose 3x (bukan locked)
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E032] gagal impose (nama.pdf)`  
+**Cause:** 3x gagal impose selain locked (E008/E010/PDF corrupt)  
+**Solution:** Sama seperti E031 — cek `uda/<nama>_ERROR.txt` untuk sebab, perbaiki PDF, retry manual.
+
+---
+
+### E034: Duplikat terdeteksi
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E034] Duplikat Terdeteksi (namaPelanggan)`  
+**Cause:** File di input sudah ada di output (impose selesai). Masuk 2x.  
+**Behavior:** **Tetap di-impose** (tidak skip), tapi tulis `.txt` marker di folder input.
+
+---
+
+### E035: Ukuran halaman beda
+**File:** `NSH Lite lite.py:process_one`  
+**Error:** `[E035] Ukuran halaman Beda (namaPelanggan)`  
+**Cause:** PDF punya halaman dengan ukuran berbeda-beda (tidak seragam).  
+**Behavior:** File di-skip permanen, dibuat `.txt` di folder input berisi:  
+```
+Ukuran halaman Beda (nama.pdf)
+[E035] UKURAN HALAMAN BEDA (nama.pdf): {(595.0, 842.0), (419.5, 595.0)}
+```
+**Solution:** Periksa PDF — semua halaman harus ukuran sama sebelum impose.
+
+---
+
+## Kode Error KMA (Konica Module Auto — `NSH Lite/route.py`)
+
+Alur KMA: INPUT → COPY ke `\\printer\<HOTFOLDER>` (nama asli) → asli ke UDA. Tak cocok → RETURN. Done printer → UDA.
+`[ LOCK ]`/`[ WAIT ]` transien (auto-retry tiap loop), tanpa kode.
+
+### KMA-E01: printer mati
+**Error:** `[KMA-E01] 10.157 dan 10.158 mati`
+**Cause:** port 445 kedua printer tak terjangkau (printer mati / kabel / beda network).
+**Behavior:** fatal — router batal jalan sebelum scan.
+**Solution:** nyalakan printer, cek kabel/LAN, `ping 192.168.10.157`.
+
+### KMA-E02: folder INPUT hilang
+**Error:** `[KMA-E02] <path> folder INPUT hilang/tak terjangkau`
+**Cause:** drive L: belum mapping / path salah / HDD tidur.
+**Solution:** cek drive di Explorer, betulkan path via `route.bat` (tanya INPUT).
+
+### KMA-E03 / KMA-E04: RETURN / UDA tak bisa ditulis
+**Cause:** permission / disk penuh / path salah.
+**Solution:** cek permission folder, kosongkan disk, betulkan path via `route.bat`.
+
+### KMA-E05: COPY ke hot folder gagal
+**Error:** `[KMA-E05] <nama> COPY ke <FOLDER> gagal: ...`
+**Cause:** share printer putus di tengah jalan / share penuh / akses tulis hilang.
+**Behavior:** file tetap di INPUT, dicoba lagi loop berikut.
+**Solution:** cek `\\192.168.10.157\<FOLDER>` bisa dibuka-tulis; jika printer ganti IP, cek `[ NET ]` pilih .158.
+
+### KMA-E06: bahan tak dikenal → RETURN
+**Cause:** nama file tidak mengandung bahan yang ada di tabel ROUTE (atau Master/Kalkir).
+**Solution:** perbaiki penamaan (tambah bahan + `1d...`), file otomatis ke-RETURN beserta alasannya di log.
+
+### KMA-E07: tanpa folder sisi itu → RETURN
+**Cause:** mis. stiker diminta 2S — tidak ada `ST_GLOSS_2S`.
+**Solution:** stiker memang selalu 1s (aturan guru); jika butuh sisi-2 untuk bahan itu, buat hot foldernya dulu di printer.
+
+### KMA-E08: arsip UDA gagal setelah COPY sukses
+**Cause:** UDA tak bisa ditulis tepat setelah COPY (disk penuh / lock / UDA di network putus).
+**Behavior:** file tetap di INPUT; COPY tidak diulang (tercatat `_COPIED` sesi ini), tinggal arsip yang di-retry.
+**Solution:** bereskan UDA, file akan terarsip sendiri loop berikut. Jika restart router sebelum terarsip: file tampil `[ WAIT ]` karena copy-nya sudah ada di hot folder — hapus duplikat di hot folder ATAU pindah manual asli ke UDA.
+
+### KMA-E09: Done→Uda gagal
+**Cause:** baca/tulis Done↔UDA gagal (network / lock file printer).
+**Solution:** file tetap di Done, dicoba lagi loop berikut. Jika `PermissionError` (terkunci printer) tidak dilog tiap loop — hanya OSError yang berkode.
 
 ---
 

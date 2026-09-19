@@ -140,7 +140,13 @@ def impose_file(input_pdf, output_pdf, preset=None):
         eng.impose_pdf(**kwargs)
     except Exception as e:
         msg = str(e)
-        if "terlalu besar" in msg or "Toleransi Ukuran Lebih Besar" in msg or "oversize" in msg.lower():
+        msg_low = msg.lower()
+        # --- page size mismatch: langsung error, jangan retry ---
+        if ("ukuran halaman" in msg_low or "halaman beda" in msg_low
+                or "page size" in msg_low or "page mismatch" in msg_low
+                or "tidak seragam" in msg_low):
+            raise BridgeError("E035", f"Ukuran halaman beda: {e}")
+        if "terlalu besar" in msg or "Toleransi Ukuran Lebih Besar" in msg or "oversize" in msg_low:
             print("[Bridge] oversize terdeteksi, retry dengan allow_oversize=True")
             kwargs["allow_oversize"] = True
             try:
