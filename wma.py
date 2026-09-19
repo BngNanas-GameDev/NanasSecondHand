@@ -83,20 +83,37 @@ def _strip_ipy(name):
     return name
 
 
+_DASH_CACHE = None  # {filename_lower: (id, row)}
+_DASH_CACHE_DAY = None
+
+
+def _load_dashboard(day):
+    """Fetch semua file dashboard sekali, return dict {filename_lower: (id, row)}."""
+    global _DASH_CACHE, _DASH_CACHE_DAY
+    if _DASH_CACHE is not None and _DASH_CACHE_DAY == day:
+        return _DASH_CACHE
+    try:
+        rows = _get(f"/api/files?date_from={day}&date_to={day}")
+    except Exception:
+        return _DASH_CACHE or {}
+    _DASH_CACHE = {}
+    for row in rows:
+        fn = _strip_ipy(row.get("filename") or "").lower()
+        if fn:
+            _DASH_CACHE[fn] = (row.get("id"), row)
+    _DASH_CACHE_DAY = day
+    return _DASH_CACHE
+
+
 def find_file_id(filename, days_back=1):
     """Cari id dashboard by nama file (abai -ipy suffix). Return (id, row) atau (None, None)."""
     today = datetime.date.today()
-    search = _strip_ipy(filename)
+    search = _strip_ipy(filename).lower()
     for d in range(days_back + 1):
         day = (today - datetime.timedelta(days=d)).isoformat()
-        try:
-            rows = _get(f"/api/files?date_from={day}&date_to={day}")
-        except Exception as e:
-            return None, f"dashboard tak terjangkau: {e}"
-        for row in rows:
-            fn = _strip_ipy(row.get("filename") or "")
-            if fn == search:
-                return row.get("id"), row
+        dash = _load_dashboard(day)
+        if search in dash:
+            return dash[search]
     return None, None
 
 
@@ -112,6 +129,8 @@ def report(filename, machine, operator=None):
         return False, f"sudah terisi ({row.get('machine_name')}/{row.get('operator')})"
     try:
         _post(f"/api/files/{fid}", {"machine_name": machine, "operator": op, "status": "done"})
+        global _DASH_CACHE
+        _DASH_CACHE = None  # invalidasi cache
     except Exception as e:
         return False, f"POST gagal: {e}"
     return True, fid
