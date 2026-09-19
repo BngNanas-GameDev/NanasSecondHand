@@ -228,8 +228,10 @@ def watch():
                 for n, label in batch:
                     print(f"    [{label}] {n[:70]}")
                 op = ask_key()
-                os.system("cls")
+                os.system("cls")  # CLS tepat setelah operator dipilih
                 print("  ===== WMA — Watcher Module Auto =====")
+                if op:
+                    print(f"  Operator: {op}")
                 results = []
                 if op:
                     for n, label in batch:
