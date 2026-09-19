@@ -217,8 +217,10 @@ UNMATCHED_QUIET_S = 120
 
 
 def scan_new(folders):
-    """Discovery sinkron (cepat): kumpulkan nama PDF ke _PENDING.
-    Pencocokan dashboard ASINKRON via pump_matches. Return [(nama, label)]."""
+    """Discovery + pencocokan asinkron.
+    File baru disubmit ke thread pool DAN hasilnya langsung dicek
+    di siklus yang sama (blocking jika belum selesai, max 3 dtk).
+    Return [(nama, label)]."""
     batch, seen = [], set()
     now = time.time()
     for label, folder in folders.items():
@@ -233,7 +235,8 @@ def scan_new(folders):
             key = n.lower()
             if key not in _PENDING:
                 _PENDING[key] = {"name": n, "label": label, "seen": now}
-    # kumpulkan hasil pencocokan asinkron yang sudah selesai
+                _MATCH_FUTS[key] = _MATCH_POOL.submit(_match_one, key, n)
+    # kumpulkan hasil pencocokan asinkron
     for key in list(_PENDING):
         e = _PENDING[key]
         if now - e["seen"] > PENDING_TTL_S:
@@ -243,21 +246,32 @@ def scan_new(folders):
         fut = _MATCH_FUTS.get(key)
         if fut is None:
             _MATCH_FUTS[key] = _MATCH_POOL.submit(_match_one, key, e["name"])
-            continue
+            fut = _MATCH_FUTS[key]
+        # file baru: tunggu hasil (max 3 dtk); file lama: skip kalau belum selesai
         if not fut.done():
-            continue
-        del _MATCH_FUTS[key]
-        try:
-            fid, row = fut.result()
-        except Exception:
-            continue
+            age = now - e["seen"]
+            if age > 6:
+                continue  # file lama, sudah dicoba, belum match
+            try:
+                fid, row = fut.result(timeout=3)
+            except _cf.TimeoutError:
+                continue
+            except Exception:
+                continue
+        else:
+            try:
+                fid, row = fut.result()
+            except Exception:
+                del _MATCH_FUTS[key]
+                continue
+            del _MATCH_FUTS[key]
         if not fid:
             if now - _UNMATCHED_QUIET.get(key, 0) >= UNMATCHED_QUIET_S:
                 _UNMATCHED_QUIET[key] = now
                 print(f"  [?] {e['name'][:55]:55s} belum ada di dashboard, tunggu...")
             continue
         if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
-            del _PENDING[key]  # sudah terisi (mis. manual di dashboard)
+            del _PENDING[key]
             continue
         batch.append((e["name"], e["label"]))
     return batch
