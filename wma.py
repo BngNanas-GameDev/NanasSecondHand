@@ -313,7 +313,6 @@ def scan_new(folders):
             continue
         if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
             _PENDING.pop(key, None)  # sudah terisi, selesai
-            del _PENDING[key]
             continue
         batch.append((e["name"], e["label"]))
     return batch
