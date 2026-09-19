@@ -131,6 +131,26 @@ def _dir_watcher(path):
         _WAKE.set()
 
 
+def konica_machine():
+    """Mesin Konica aktif: 157 -> Develop 1, 158 -> Develop 2.
+    Return None jika dua-duanya tak siap."""
+    import socket
+    for ip, name in (("192.168.10.157", "Develop 1"),
+                     ("192.168.10.158", "Develop 2")):
+        try:
+            s = socket.create_connection((ip, 445), timeout=3)
+            s.close()
+        except OSError:
+            continue
+        for share in ("ST_GLOSS_1S", "ST_GLOSSY_1S"):
+            try:
+                os.listdir(f"\\\\{ip}\\{share}")
+                return name
+            except OSError:
+                continue
+    return None
+
+
 def dashboard_counts():
     """Hitungan hari ini dari Watcher: (total, pending, selesai, verified)."""
     today = datetime.date.today().isoformat()
@@ -261,17 +281,21 @@ def watch():
                     print(f"  Operator: {op}")
                 results = []
                 if op:
+                    kon = konica_machine()
                     for n, label in batch:
-                        ok, info = report(n, machine_map.get(label, label), op)
-                        results.append((n, op, ok, info))
+                        m = machine_map.get(label, label)
+                        if label != "RICOH" and kon:
+                            m = kon
+                        ok, info = report(n, m, op)
+                        results.append((n, m, op, ok, info))
                 else:
                     print("  batch dilewati.")
                 last = show_counts()
-                for n, op_, ok, info in results:
+                for n, m, op_, ok, info in results:
                     mark = "OK " if ok else "!! "
-                    print(f"  [{mark}] {n[:55]:55s} {op_} -> {info}")
+                    print(f"  [{mark}] {n[:45]:45s} {m:10s} {op_} -> {info}")
                 if op:
-                    print(f"  {len([r for r in results if r[2]])}/{len(results)} jadi Selesai.")
+                    print(f"  {len([r for r in results if r[3]])}/{len(results)} jadi Selesai.")
     except KeyboardInterrupt:
         print("\n  stop.")
 
