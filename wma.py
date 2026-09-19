@@ -253,8 +253,11 @@ def watch():
                     print(f"  [{mark}] {n[:55]:55s} {op_} -> {info}")
                 if op:
                     print(f"  {len([r for r in results if r[2]])}/{len(results)} jadi Selesai.")
-            _WAKE.wait(30)
+            fired = _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
             _WAKE.clear()
+            if fired:
+                _time.sleep(5)  # settle: beri file kembaran sempat masuk semua
+                _WAKE.clear()
     except KeyboardInterrupt:
         print("\n  stop.")
 
