@@ -250,6 +250,7 @@ def watch():
             if not batch and counts == last:
                 continue  # tidak ada perubahan: diam total
             last = counts
+            os.system("cls")
             print(f"  ----- {datetime.datetime.now().strftime('%H:%M:%S')} -----")
             print("  ===== WMA — Watcher Module Auto =====")
             show_counts(counts)
@@ -258,6 +259,7 @@ def watch():
                 for n, label in batch:
                     print(f"    [{label}] {n[:70]}")
                 op = ask_key()
+                os.system("cls")
                 print("  ===== WMA — hasil =====")
                 if op:
                     print(f"  Operator: {op}")
