@@ -26,6 +26,8 @@ CANONICAL = {
     "jasmine": "Jasmine",
     "ivory": "Ivory",
     "transparant": "Transparant",
+    "stiker hvs": "Stiker HVS",
+    "hvs stiker": "Stiker HVS",
     "hologram": "Hologram",
     "gold": "Gold",
     "silver": "Silver",

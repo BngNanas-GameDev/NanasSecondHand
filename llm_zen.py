@@ -9,7 +9,7 @@ def llm_parse_filename(filename):
     tmp = re.sub(r'\.pdf$', '', tmp, flags=re.I)
     return tmp
 
-STIKER_1S = {"Vinyl", "Hologram", "Gold", "Silver"}
+STIKER_1S = {"Vinyl", "Hologram", "Gold", "Silver", "Stiker HVS"}
 
 
 def parse_duplex(filename):
@@ -26,11 +26,17 @@ def parse_duplex(filename):
             return "1s"
         if any(k in low for k in ("kromo", "cromo")) and ("stiker" in low or "sticker" in low):
             return "1s"
+        if "hvs" in low and ("stiker" in low or "sticker" in low):
+            return "1s"
     if _b in STIKER_1S:
         return "1s"
     if _b == "Kromo" and ("stiker" in low or "sticker" in low):
         return "1s"
-    if "data sama" in low or "datasama" in low or "bolak balik sama" in low or "gambar sama" in low:
+    if ("data sama" in low or "datasama" in low
+            or "bolak balik sama" in low or "gambar sama" in low
+            or "nomor sama" in low or "nomer sama" in low
+            or "bolak balik gbr sama" in low or "gbr sama" in low
+            or "serupa" in low):
         return "dr"
     tmp = re.sub(r"(doff|dof|laminasi|laminating|glossy|gloss|matte|hologram|canvas|uv|varnish)\s*2s", " ", low)
     if ("2s" in tmp or "bolak" in low or "dua muka" in low
@@ -51,6 +57,8 @@ def skip_reason(filename):
         return "hardcover"
     if "map" in low:
         return "map"
+    if "depan" in low or "belakang" in low:
+        return "depan/belakang"
     try:
         from bahan_dict import has_bahan as _hb
         if not _hb(filename):
