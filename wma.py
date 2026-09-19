@@ -256,8 +256,6 @@ import concurrent.futures as _cf
 
 _MATCH_POOL = _cf.ThreadPoolExecutor(max_workers=4, thread_name_prefix="wma-match")
 _MATCH_FUTS = {}  # nama-lower -> Future[(fid, row)]
-_UNMATCHED_QUIET = {}  # nama file -> timestamp log terakhir
-UNMATCHED_QUIET_S = 120
 
 
 def scan_new(folders):
@@ -311,11 +309,10 @@ def scan_new(folders):
                 continue
             del _MATCH_FUTS[key]
         if not fid:
-            if now - _UNMATCHED_QUIET.get(key, 0) >= UNMATCHED_QUIET_S:
-                _UNMATCHED_QUIET[key] = now
-                print(f"  [?] {e['name'][:55]:55s} belum ada di dashboard, tunggu...")
+            del _PENDING[key]  # tidak ada di dashboard, bukan urusan WMA
             continue
         if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
+            del _PENDING[key]  # sudah terisi, selesai
             del _PENDING[key]
             continue
         batch.append((e["name"], e["label"]))
