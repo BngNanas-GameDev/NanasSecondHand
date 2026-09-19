@@ -75,9 +75,18 @@ def ask_operator():
     return op
 
 
+def _strip_ipy(name):
+    """Buang suffix -ipy/-IPY dari nama file (imposition output)."""
+    lo = name.lower()
+    if lo.endswith("-ipy.pdf"):
+        return name[:-8] + ".pdf"
+    return name
+
+
 def find_file_id(filename, days_back=1):
-    """Cari id dashboard by nama file persis. Return (id, row) atau (None, None)."""
+    """Cari id dashboard by nama file (abai -ipy suffix). Return (id, row) atau (None, None)."""
     today = datetime.date.today()
+    search = _strip_ipy(filename)
     for d in range(days_back + 1):
         day = (today - datetime.timedelta(days=d)).isoformat()
         try:
@@ -85,7 +94,8 @@ def find_file_id(filename, days_back=1):
         except Exception as e:
             return None, f"dashboard tak terjangkau: {e}"
         for row in rows:
-            if (row.get("filename") or "") == filename:
+            fn = _strip_ipy(row.get("filename") or "")
+            if fn == search:
                 return row.get("id"), row
     return None, None
 
