@@ -229,10 +229,11 @@ def scan_new(folders):
         except OSError:
             continue
         for n in names:
-            if not n.lower().endswith(".pdf") or n.lower() in seen:
+            lo = n.lower()
+            if not lo.endswith(".pdf") or lo in seen or "-ipy" in lo:
                 continue
-            seen.add(n.lower())
-            key = n.lower()
+            seen.add(lo)
+            key = lo
             if key not in _PENDING:
                 _PENDING[key] = {"name": n, "label": label, "seen": now}
                 _MATCH_FUTS[key] = _MATCH_POOL.submit(_match_one, key, n)
