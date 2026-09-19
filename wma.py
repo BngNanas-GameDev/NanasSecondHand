@@ -350,15 +350,15 @@ def watch():
     MIN_INTERVAL = 20  # minimal 20 dtk antar scan
     try:
         while True:
-            fired = _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
+            _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
             _WAKE.clear()
-            if fired:
-                time.sleep(5)  # settle: beri file kembaran sempat masuk semua
-                _WAKE.clear()
+            time.sleep(5)  # settle: beri file kembaran sempat masuk semua
+            _WAKE.clear()
             now = time.time()
             if now - last_scan < MIN_INTERVAL:
+                time.sleep(MIN_INTERVAL - (now - last_scan))
                 continue
-            last_scan = now
+            last_scan = time.time()
             try:
                 counts = dashboard_counts()
             except Exception:
