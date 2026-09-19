@@ -6,7 +6,7 @@ cd /d "%~dp0"
 color 0A
 echo ============================================================
 echo   WMA - Watcher Module Auto
-echo   Operator per sesi  ^|  Mesin mengikuti tujuan routing
+echo   Tanya folder dulu -^> tunggu file -^> operator saat batch siap
 echo ============================================================
 echo.
 if "%~1"=="--check" (
@@ -21,10 +21,6 @@ if "%~1"=="--report" (
   pause
   exit /b
 )
-python wma.py --operator
-echo.
-echo  [Watch] pantau DEVELOP + RICOH, match dashboard, operator 1/2/3
-echo.
 python wma.py
 echo.
 pause
