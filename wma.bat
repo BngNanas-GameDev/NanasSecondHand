@@ -23,4 +23,8 @@ if "%~1"=="--report" (
 )
 python wma.py --operator
 echo.
+echo  [Watch] pantau DEVELOP + RICOH, match dashboard, operator 1/2/3
+echo.
+python wma.py
+echo.
 pause

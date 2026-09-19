@@ -7,7 +7,9 @@
 """
 import datetime
 import json
+import os
 import sys
+import threading
 import urllib.request
 from pathlib import Path
 
@@ -16,6 +18,7 @@ CFG_PATH = BASE / "wma.json"
 
 DASH_URL = "http://192.168.5.54:5000"
 OPERATORS = ("Nanas", "Eric", "Rahmadi")  # ejaan persis dashboard
+OPERATOR_KEYS = {"1": 0, "2": 1, "3": 2}
 
 
 def load_cfg():
@@ -99,6 +102,148 @@ def report(filename, machine, operator=None):
     return True, fid
 
 
+_WAKE = threading.Event()
+
+
+def _dir_watcher(path):
+    """Thread event: bangun saat ada aksi file (tanpa polling)."""
+    import ctypes
+    try:
+        k32 = ctypes.windll.kernel32
+        h = k32.CreateFileW(str(path), 0x0001, 0x00000001 | 0x00000002 | 0x00000004,
+                            None, 3, 0x02000000, None)
+        if h == -1:
+            return
+        from ctypes import wintypes
+        buf = ctypes.create_string_buffer(4096)
+        nbytes = wintypes.DWORD()
+        while True:
+            if k32.ReadDirectoryChangesW(h, buf, 4096, False, 0x00000003,
+                                         ctypes.byref(nbytes), None, None):
+                _WAKE.set()
+            else:
+                break
+        k32.CloseHandle(h)
+    except Exception:
+        return
+    finally:
+        _WAKE.set()
+
+
+def dashboard_counts():
+    """Hitungan hari ini dari Watcher: (total, pending, selesai, verified)."""
+    today = datetime.date.today().isoformat()
+    rows = _get(f"/api/files?date_from={today}&date_to={today}")
+    total = len(rows)
+    pending = sum(1 for r in rows if r.get("status") == "pending")
+    done = [r for r in rows if r.get("status") == "done"]
+    verified = sum(1 for r in done if r.get("verified"))
+    return total, pending, len(done), verified
+
+
+def ask_folders():
+    """Folder INPUT awal: DEVELOP + RICOH (Enter = tersimpan)."""
+    cfg = load_cfg()
+    folders = cfg.get("folders", {})
+    print("  Folder INPUT awal (Enter = tersimpan):")
+    try:
+        a = input(f"  DEVELOP? [{folders.get('DEVELOP', '')}]: ").strip().strip('"').strip("'")
+        if a:
+            folders["DEVELOP"] = a
+        b = input(f"  RICOH?   [{folders.get('RICOH', '')}]: ").strip().strip('"').strip("'")
+        if b:
+            folders["RICOH"] = b
+    except (EOFError, KeyboardInterrupt):
+        print()
+    folders = {k: v for k, v in folders.items() if v and Path(v).exists()}
+    if not folders:
+        print("  tidak ada folder valid — isi dulu.")
+        raise SystemExit(1)
+    cfg["folders"] = folders
+    if "machine_map" not in cfg:
+        cfg["machine_map"] = {"DEVELOP": "Develop 1", "RICOH": "Ricoh"}
+    save_cfg(cfg)
+    return folders, cfg.get("machine_map", {})
+
+
+def ask_key():
+    """1/2/3 tanpa Enter (q = lewati batch)."""
+    import msvcrt
+    print("  Siapa yang cetak? [1] NANAS [2] ERIC [3] RAHMADI (q=lewati, tanpa Enter)")
+    while True:
+        try:
+            ch = msvcrt.getch().decode().lower()
+        except Exception:
+            continue
+        if ch in OPERATOR_KEYS:
+            return OPERATORS[OPERATOR_KEYS[ch]]
+        if ch in ("q", "\x1b"):
+            return None
+
+
+def scan_new(folders):
+    """File PDF yang match dashboard & belum terisi mesin+operator.
+    Return [(nama_file, label_folder)], unmatched hanya dilog."""
+    batch, seen = [], set()
+    for label, folder in folders.items():
+        try:
+            names = os.listdir(folder)
+        except OSError:
+            continue
+        for n in names:
+            if not n.lower().endswith(".pdf") or n.lower() in seen:
+                continue
+            seen.add(n.lower())
+            fid, row = find_file_id(n)
+            if not fid:
+                print(f"  [?] {n[:55]:55s} tidak ada di dashboard")
+                continue
+            if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
+                continue  # sudah terisi
+            batch.append((n, label))
+    return batch
+
+
+def show_counts():
+    try:
+        total, pending, done, verif = dashboard_counts()
+        print(f"  Watcher: Total={total} Pending={pending} Selesai={done} Verified={verif}")
+    except Exception as e:
+        print(f"  Watcher tak terjangkau: {e}")
+
+
+def watch():
+    folders, machine_map = ask_folders()
+    print(f"  mesin: {machine_map}")
+    for label, folder in folders.items():
+        threading.Thread(target=_dir_watcher, args=(Path(folder),), daemon=True).start()
+    try:
+        while True:
+            os.system("cls")
+            print("  ===== WMA — Watcher Module Auto =====")
+            show_counts()
+            batch = scan_new(folders)
+            if batch:
+                print(f"  {len(batch)} file baru:")
+                for n, label in batch:
+                    print(f"    [{label}] {n[:70]}")
+                op = ask_key()
+                os.system("cls")
+                print("  ===== WMA — Watcher Module Auto =====")
+                show_counts()
+                if op:
+                    for n, label in batch:
+                        ok, info = report(n, machine_map.get(label, label), op)
+                        mark = "OK " if ok else "!! "
+                        print(f"  [{mark}] {n[:55]:55s} {op} -> {info}")
+                else:
+                    print("  batch dilewati.")
+            _WAKE.wait(30)
+            _WAKE.clear()
+    except KeyboardInterrupt:
+        print("\n  stop.")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     if "--check" in args:
@@ -128,4 +273,4 @@ if __name__ == "__main__":
     elif "--operator" in args:
         ask_operator()
     else:
-        print("pakai: --check \"<file>\" | --report \"<file>\" --machine \"Develop 1\" | --operator")
+        watch()
