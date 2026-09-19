@@ -86,7 +86,7 @@ def find_file_id(filename, days_back=1):
 
 
 def report(filename, machine, operator=None):
-    """Isi mesin + operator dashboard untuk satu nama file.
+    """Isi mesin + operator + status done untuk satu nama file.
     Return (True, id) atau (False, alasan)."""
     cfg = load_cfg()
     op = operator or cfg.get("operator") or OPERATORS[0]
@@ -96,7 +96,7 @@ def report(filename, machine, operator=None):
     if isinstance(row, dict) and row.get("machine_name") and row.get("operator"):
         return False, f"sudah terisi ({row.get('machine_name')}/{row.get('operator')})"
     try:
-        _post(f"/api/files/{fid}", {"machine_name": machine, "operator": op})
+        _post(f"/api/files/{fid}", {"machine_name": machine, "operator": op, "status": "done"})
     except Exception as e:
         return False, f"POST gagal: {e}"
     return True, fid
@@ -230,14 +230,19 @@ def watch():
                 op = ask_key()
                 os.system("cls")
                 print("  ===== WMA — Watcher Module Auto =====")
-                show_counts()
+                results = []
                 if op:
                     for n, label in batch:
                         ok, info = report(n, machine_map.get(label, label), op)
-                        mark = "OK " if ok else "!! "
-                        print(f"  [{mark}] {n[:55]:55s} {op} -> {info}")
+                        results.append((n, op, ok, info))
                 else:
                     print("  batch dilewati.")
+                show_counts()
+                for n, op_, ok, info in results:
+                    mark = "OK " if ok else "!! "
+                    print(f"  [{mark}] {n[:55]:55s} {op_} -> {info}")
+                if op:
+                    print(f"  {len([r for r in results if r[2]])}/{len(results)} jadi Selesai.")
             _WAKE.wait(30)
             _WAKE.clear()
     except KeyboardInterrupt:
