@@ -85,24 +85,35 @@ def _strip_ipy(name):
 
 _DASH_CACHE = None  # {filename_lower: (id, row)}
 _DASH_CACHE_DAY = None
+_DASH_LOCK = threading.Lock()
+_DASH_FETCH_TS = 0  # timestamp fetch terakhir (cooldown antar fetch)
+_DASH_FETCH_COOLDOWN = 30  # minimal 30 dtk antar fetch
 
 
 def _load_dashboard(day):
-    """Fetch semua file dashboard sekali, return dict {filename_lower: (id, row)}."""
-    global _DASH_CACHE, _DASH_CACHE_DAY
-    if _DASH_CACHE is not None and _DASH_CACHE_DAY == day:
-        return _DASH_CACHE
+    """Fetch semua file dashboard sekali (dengan lock + cooldown).
+    Return dict {filename_lower: (id, row)}."""
+    global _DASH_CACHE, _DASH_CACHE_DAY, _DASH_FETCH_TS
+    with _DASH_LOCK:
+        now = time.time()
+        if _DASH_CACHE is not None and _DASH_CACHE_DAY == day:
+            return _DASH_CACHE
+        if now - _DASH_FETCH_TS < _DASH_FETCH_COOLDOWN:
+            return _DASH_CACHE or {}
+        _DASH_FETCH_TS = now
     try:
         rows = _get(f"/api/files?date_from={day}&date_to={day}")
     except Exception:
         return _DASH_CACHE or {}
-    _DASH_CACHE = {}
+    new_cache = {}
     for row in rows:
         fn = _strip_ipy(row.get("filename") or "").lower()
         if fn:
-            _DASH_CACHE[fn] = (row.get("id"), row)
-    _DASH_CACHE_DAY = day
-    return _DASH_CACHE
+            new_cache[fn] = (row.get("id"), row)
+    with _DASH_LOCK:
+        _DASH_CACHE = new_cache
+        _DASH_CACHE_DAY = day
+    return new_cache
 
 
 def find_file_id(filename, days_back=1):
@@ -335,6 +346,8 @@ def watch():
     for label, folder in folders.items():
         threading.Thread(target=_dir_watcher, args=(Path(folder),), daemon=True).start()
     last = None
+    last_scan = 0
+    MIN_INTERVAL = 20  # minimal 20 dtk antar scan
     try:
         while True:
             fired = _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
@@ -342,6 +355,10 @@ def watch():
             if fired:
                 time.sleep(5)  # settle: beri file kembaran sempat masuk semua
                 _WAKE.clear()
+            now = time.time()
+            if now - last_scan < MIN_INTERVAL:
+                continue
+            last_scan = now
             try:
                 counts = dashboard_counts()
             except Exception:
