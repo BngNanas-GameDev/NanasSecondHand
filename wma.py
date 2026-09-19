@@ -20,10 +20,12 @@ CFG_PATH = BASE / "wma.json"
 DASH_URL = "http://192.168.5.54:5000"
 OPERATORS = ("Nanas", "Eric", "Rahmadi")  # ejaan persis dashboard
 OPERATOR_KEYS = {"1": 0, "2": 1, "3": 2}
-WMA_VERSION = "19d"
+WMA_VERSION = "20"
 
 _PENDING = {}  # nama-lower -> {name, label, seen} (tetap dicocokkan walau file pergi)
 PENDING_TTL_S = 48 * 3600
+
+DAILY_PATH = BASE / "wma_daily.json"
 
 
 def load_cfg():
@@ -145,6 +147,25 @@ def report(filename, machine, operator=None):
     except Exception as e:
         return False, f"POST gagal: {e}"
     return True, fid
+
+
+def save_daily_entry(filename, machine, operator):
+    """Simpan entry ke wma_daily.json. Auto-reset saat tanggal berganti."""
+    today = datetime.date.today().isoformat()
+    try:
+        data = json.loads(DAILY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+    if data.get("date") != today:
+        data = {"date": today, "entries": []}
+    seen = {e["filename"] for e in data["entries"]}
+    if filename not in seen:
+        data["entries"].append({
+            "filename": filename,
+            "machine": machine,
+            "operator": operator,
+        })
+        DAILY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 _WAKE = threading.Event()
@@ -386,6 +407,7 @@ def watch():
                         ok, info = report(n, m, op)
                         results.append((n, m, op, ok, info))
                         if ok:
+                            save_daily_entry(n, m, op)
                             _PENDING.pop(n.lower(), None)
                             _MATCH_FUTS.pop(n.lower(), None)
                 else:

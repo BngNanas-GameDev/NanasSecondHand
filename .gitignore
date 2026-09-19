@@ -18,3 +18,5 @@ bench_rs_tmp*
 qbench.txt
 *.pdb
 data/stats_backup_*.jsonl
+
+env/
