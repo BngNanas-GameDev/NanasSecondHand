@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import threading
+import time
 import urllib.request
 from pathlib import Path
 
@@ -201,8 +202,7 @@ def scan_new(folders):
             seen.add(n.lower())
             fid, row = find_file_id(n)
             if not fid:
-                import time as _t
-                now = _t.time()
+                now = time.time()
                 if now - _UNMATCHED_QUIET.get(n.lower(), 0) >= UNMATCHED_QUIET_S:
                     _UNMATCHED_QUIET[n.lower()] = now
                     print(f"  [?] {n[:55]:55s} belum ada di dashboard, tunggu...")
@@ -213,12 +213,14 @@ def scan_new(folders):
     return batch
 
 
-def show_counts():
+def show_counts(counts=None):
     try:
-        total, pending, done, verif = dashboard_counts()
+        total, pending, done, verif = counts if counts else dashboard_counts()
         print(f"  Watcher: Total={total} Pending={pending} Selesai={done} Verified={verif}")
+        return (total, pending, done, verif)
     except Exception as e:
         print(f"  Watcher tak terjangkau: {e}")
+        return None
 
 
 def watch():
@@ -226,12 +228,25 @@ def watch():
     print(f"  mesin: {machine_map}")
     for label, folder in folders.items():
         threading.Thread(target=_dir_watcher, args=(Path(folder),), daemon=True).start()
+    last = None
     try:
         while True:
+            fired = _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
+            _WAKE.clear()
+            if fired:
+                time.sleep(5)  # settle: beri file kembaran sempat masuk semua
+                _WAKE.clear()
+            try:
+                counts = dashboard_counts()
+            except Exception:
+                counts = None
+            batch = scan_new(folders)
+            if not batch and counts == last:
+                continue  # tidak ada perubahan: diam total
+            last = counts
             print(f"  ----- {datetime.datetime.now().strftime('%H:%M:%S')} -----")
             print("  ===== WMA — Watcher Module Auto =====")
-            show_counts()
-            batch = scan_new(folders)
+            show_counts(counts)
             if batch:
                 print(f"  {len(batch)} file baru:")
                 for n, label in batch:
@@ -247,17 +262,12 @@ def watch():
                         results.append((n, op, ok, info))
                 else:
                     print("  batch dilewati.")
-                show_counts()
+                last = show_counts()
                 for n, op_, ok, info in results:
                     mark = "OK " if ok else "!! "
                     print(f"  [{mark}] {n[:55]:55s} {op_} -> {info}")
                 if op:
                     print(f"  {len([r for r in results if r[2]])}/{len(results)} jadi Selesai.")
-            fired = _WAKE.wait(30)  # bangun saat ada aksi file; jaring pengaman 30 dtk
-            _WAKE.clear()
-            if fired:
-                _time.sleep(5)  # settle: beri file kembaran sempat masuk semua
-                _WAKE.clear()
     except KeyboardInterrupt:
         print("\n  stop.")
 
