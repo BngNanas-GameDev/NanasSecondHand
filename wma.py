@@ -355,7 +355,11 @@ def show_counts(counts=None):
 
 def watch():
     folders, machine_map = ask_folders()
-    print(f"  mesin: {machine_map}")
+    kon = konica_machine()
+    if kon:
+        print(f"  mesin aktif: {kon}")
+    else:
+        print(f"  mesin: {machine_map}")
     for label, folder in folders.items():
         threading.Thread(target=_dir_watcher, args=(Path(folder),), daemon=True).start()
     last = None
