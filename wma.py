@@ -207,8 +207,7 @@ def dashboard_counts():
 
 
 def ask_folders():
-    """Folder INPUT awal: DEVELOP + RICOH + UDA (Enter = tersimpan).
-    UDA dipantau untuk file yang sudah dipindah KMA tapi belum terisi mesin+operator."""
+    """Folder INPUT awal: DEVELOP + RICOH (Enter = tersimpan)."""
     cfg = load_cfg()
     folders = cfg.get("folders", {})
     print("  Folder INPUT awal (Enter = tersimpan):")
@@ -219,20 +218,17 @@ def ask_folders():
         b = input(f"  RICOH?   [{folders.get('RICOH', '')}]: ").strip().strip('"').strip("'")
         if b:
             folders["RICOH"] = b
-        dev = folders.get("DEVELOP", "")
-        uda_default = folders.get("UDA") or (str(Path(dev).parent / "Uda") if dev else "")
-        c = input(f"  UDA?     [{uda_default}]: ").strip().strip('"').strip("'")
-        folders["UDA"] = c or uda_default
     except (EOFError, KeyboardInterrupt):
         print()
+    folders.pop("UDA", None)
     folders = {k: v for k, v in folders.items() if v and Path(v).exists()}
     if not folders:
         print("  tidak ada folder valid — isi dulu.")
         raise SystemExit(1)
     cfg["folders"] = folders
     if "machine_map" not in cfg:
-        cfg["machine_map"] = {"DEVELOP": "Develop 1", "RICOH": "Ricoh", "UDA": "Develop 1"}
-    cfg["machine_map"].setdefault("UDA", "Develop 1")
+        cfg["machine_map"] = {"DEVELOP": "Develop 1", "RICOH": "Ricoh"}
+    cfg["machine_map"].pop("UDA", None)
     save_cfg(cfg)
     return folders, cfg.get("machine_map", {})
 
